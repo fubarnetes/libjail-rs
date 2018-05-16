@@ -1,3 +1,8 @@
+//! This is the jail crate.
+//!
+//! it aims to provide the features exposed by the FreeBSD Jail Library
+//! [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable)
+
 extern crate libc;
 
 extern crate errno;
@@ -21,6 +26,14 @@ macro_rules! iovec {
     };
 }
 
+/// Get the name of a jail given the jid
+///
+/// # Examples
+///
+/// ```
+/// let name = jail::jail_getname(1);
+/// println!("{:?}", name);
+/// ```
 pub fn jail_getname(jid: i32) -> Result<String, String> {
     let mut namebuf: [u8; 256] = unsafe { mem::zeroed() };
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
@@ -55,6 +68,17 @@ pub fn jail_getname(jid: i32) -> Result<String, String> {
     }
 }
 
+/// Get the `jid` of a jail given the name.
+///
+/// This function attempts to parse the name into an `i32` first, which is
+/// returned if successful.
+///
+/// # Examples
+///
+/// ```
+/// let name = jail::jail_getid("foobar");
+/// println!("{:?}", name);
+/// ````
 pub fn jail_getid(name: &str) -> Result<i32, String> {
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
