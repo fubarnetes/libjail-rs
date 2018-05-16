@@ -1,0 +1,17 @@
+[package]
+name = "jail"
+version = "0.0.0"
+authors = ["Fabian Freyer <fabian.freyer@physik.tu-berlin.de>"]
+description = "FreeBSD jail library"
+license = "BSD-3-Clause"
+
+[lib]
+name = "jail"
+path = "src/lib.rs"
+
+[badges]
+maintenance = { status = "experimental" }
+
+[dependencies]
+libc = "0.2"
+errno = "0.2.3"
