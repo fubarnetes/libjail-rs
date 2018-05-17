@@ -5,7 +5,7 @@ authors = ["Fabian Freyer <fabian.freyer@physik.tu-berlin.de>"]
 description = "FreeBSD jail library"
 license = "BSD-3-Clause"
 repository = "https://github.com/fubarnetes/libjail-rs"
-documentation = "https://docs.rs/jail/"
+documentation = "https://fubarnetes.github.io/libjail-rs/x86_64-unknown-freebsd/jail/index.html"
 
 [lib]
 name = "jail"
