@@ -22,3 +22,7 @@ is-it-maintained-open-issues = { repository = "fubarnetes/libjail-rs" }
 [dependencies]
 libc = "0.2"
 bitflags = "1.0"
+
+[[example]]
+name = "basic_api"
+path = "examples/basic_api/main.rs"
