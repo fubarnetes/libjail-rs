@@ -21,4 +21,3 @@ is-it-maintained-open-issues = { repository = "fubarnetes/libjail-rs" }
 
 [dependencies]
 libc = "0.2"
-errno = "0.2.3"

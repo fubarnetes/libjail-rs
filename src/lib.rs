@@ -7,10 +7,8 @@ extern crate libc;
 
 pub mod process;
 
-extern crate errno;
-use errno::errno;
-
 use std::ffi::{CStr, CString};
+use std::io::{Error, ErrorKind};
 use std::mem;
 
 macro_rules! iovec {
@@ -37,7 +35,7 @@ macro_rules! iovec {
 /// println!("{:?}", name);
 /// ```
 #[cfg(target_os = "freebsd")]
-pub fn jail_getname(jid: i32) -> Result<String, String> {
+pub fn jail_getname(jid: i32) -> Result<String, Error> {
     let mut namebuf: [u8; 256] = unsafe { mem::zeroed() };
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
     let mut jid = jid;
@@ -64,8 +62,11 @@ pub fn jail_getname(jid: i32) -> Result<String, String> {
 
     match jid {
         e if e < 0 => match errmsg[0] {
-            0 => Err(format!("{}", errno())),
-            _ => Err(err.to_string_lossy().into_owned()),
+            0 => Err(Error::last_os_error()),
+            _ => Err(Error::new(
+                ErrorKind::Other,
+                format!("{}", err.to_string_lossy()),
+            )),
         },
         _ => Ok(name.to_string_lossy().into_owned()),
     }
@@ -83,7 +84,7 @@ pub fn jail_getname(jid: i32) -> Result<String, String> {
 /// println!("{:?}", name);
 /// ````
 #[cfg(target_os = "freebsd")]
-pub fn jail_getid(name: &str) -> Result<i32, String> {
+pub fn jail_getid(name: &str) -> Result<i32, Error> {
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
     if let Ok(jid) = name.parse::<i32>() {
@@ -111,8 +112,11 @@ pub fn jail_getid(name: &str) -> Result<i32, String> {
 
     match jid {
         e if e < 0 => match errmsg[0] {
-            0 => Err(format!("{}", errno())),
-            _ => Err(err.to_string_lossy().into_owned()),
+            0 => Err(Error::last_os_error()),
+            _ => Err(Error::new(
+                ErrorKind::Other,
+                format!("{}", err.to_string_lossy()),
+            )),
         },
         _ => Ok(jid),
     }
