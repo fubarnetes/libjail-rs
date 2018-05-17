@@ -121,3 +121,27 @@ pub fn jail_getid(name: &str) -> Result<i32, Error> {
         _ => Ok(jid),
     }
 }
+
+/// Remove a jail with the given `jid`.
+///
+/// This will kill all processes belonging to the jail, and remove any children
+/// of that jail.
+///
+/// Examples:
+///
+/// ```
+/// use jail::jail_remove;
+///
+/// jail_remove(1);
+/// ```
+pub fn jail_remove(jid: i32) -> Result<(), Error> {
+    let ret = unsafe { libc::jail_remove(jid) };
+    match ret {
+        0 => Ok(()),
+        -1 => Err(Error::last_os_error()),
+        _ => Err(Error::new(
+            ErrorKind::Other,
+            "invalid return value from jail_remove",
+        )),
+    }
+}
