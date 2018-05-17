@@ -11,6 +11,9 @@ use std::ffi::{CStr, CString};
 use std::io::{Error, ErrorKind};
 use std::mem;
 
+#[macro_use]
+extern crate bitflags;
+
 macro_rules! iovec {
     ($value:expr, $size:expr) => {
         libc::iovec {
@@ -24,6 +27,22 @@ macro_rules! iovec {
             iov_len: $name.len(),
         }
     };
+}
+
+bitflags! {
+    pub struct JailFlags : i32 {
+        /// Create the Jail if it doesn't exist
+        const CREATE = 0x01;
+
+        /// Update parameters of existing Jail
+        const UPDATE = 0x02;
+
+        /// Attach to Jail upon creation
+        const ATTACH = 0x04;
+
+        /// Allow getting a dying jail
+        const DYING = 0x08;
+    }
 }
 
 /// Get the name of a jail given the jid
@@ -53,7 +72,7 @@ pub fn jail_getname(jid: i32) -> Result<String, Error> {
         libc::jail_get(
             jiov[..].as_mut_ptr() as *mut libc::iovec,
             jiov.len() as u32,
-            0,
+            JailFlags::empty().bits,
         )
     };
 
@@ -104,7 +123,7 @@ pub fn jail_getid(name: &str) -> Result<i32, Error> {
         libc::jail_get(
             jiov[..].as_mut_ptr() as *mut libc::iovec,
             jiov.len() as u32,
-            0,
+            JailFlags::empty().bits,
         )
     };
 
