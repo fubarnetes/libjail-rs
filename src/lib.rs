@@ -10,9 +10,13 @@ pub mod process;
 use std::ffi::{CStr, CString};
 use std::io::{Error, ErrorKind};
 use std::mem;
+use std::ptr;
 
 #[macro_use]
 extern crate bitflags;
+
+use std::os::unix::ffi::OsStrExt;
+use std::path;
 
 macro_rules! iovec {
     ($value:expr, $size:expr) => {
@@ -25,6 +29,12 @@ macro_rules! iovec {
         libc::iovec {
             iov_base: $name.as_ptr() as *mut libc::c_void,
             iov_len: $name.len(),
+        }
+    };
+    () => {
+        libc::iovec {
+            iov_base: ptr::null::<libc::c_void>() as *mut libc::c_void,
+            iov_len: 0,
         }
     };
 }
@@ -42,6 +52,71 @@ bitflags! {
 
         /// Allow getting a dying jail
         const DYING = 0x08;
+    }
+}
+
+/// Create a jail with a specific path
+///
+/// # Examples
+///
+/// ```
+/// use std::path::Path;
+///
+/// let jid = jail::jail_create(Path::new("/tmp"), Some("testjail"), None).unwrap();
+/// assert_eq!(jail::jail_getname(jid).unwrap(), "testjail");
+/// jail::jail_remove(jid);
+/// ```
+pub fn jail_create(
+    path: &path::Path,
+    name: Option<&str>,
+    hostname: Option<&str>,
+) -> Result<i32, Error> {
+    let pathstr = CString::new(path.as_os_str().to_str().unwrap()).unwrap();
+    let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
+
+    let mut jiov = vec![
+        iovec!(b"path\0"),
+        iovec!(pathstr.as_ptr(), pathstr.as_bytes().len() + 1),
+        iovec!(b"persist\0"),
+        iovec!(),
+    ];
+
+    if let Some(name) = name {
+        jiov.push(iovec!(b"name\0"));
+        let namebuf = CString::new(name).unwrap();
+        let len = namebuf.as_bytes().len() + 1;
+        jiov.push(iovec!(namebuf.into_bytes_with_nul().as_ptr(), len));
+    }
+
+    if let Some(hostname) = hostname {
+        jiov.push(iovec!(b"host.hostname\0"));
+        let namebuf = CString::new(hostname).unwrap();
+        let len = namebuf.as_bytes().len() + 1;
+        jiov.push(iovec!(namebuf.into_bytes_with_nul().as_ptr(), len));
+    }
+
+    jiov.push(iovec!(b"errmsg\0"));
+    jiov.push(iovec!(errmsg.as_mut_ptr(), errmsg.len()));
+
+    let jid = unsafe {
+        libc::jail_set(
+            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov.len() as u32,
+            JailFlags::CREATE.bits,
+        )
+    };
+
+    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) };
+
+    match jid {
+        e if e < 0 => match errmsg[0] {
+            0 => Err(Error::last_os_error()),
+            _ => Err(Error::new(
+                ErrorKind::Other,
+                format!("{}", err.to_string_lossy()),
+            )),
+        },
+        _ => Ok(jid),
     }
 }
 
