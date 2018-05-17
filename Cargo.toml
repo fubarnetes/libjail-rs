@@ -13,6 +13,9 @@ path = "src/lib.rs"
 
 [badges]
 maintenance = { status = "experimental" }
+travis-ci = { repository = "fubarnetes/libjail-rs", branch = "master" }
+is-it-maintained-issue-resolution = { repository = "fubarnetes/libjail-rs" }
+is-it-maintained-open-issues = { repository = "fubarnetes/libjail-rs" }
 
 [dependencies]
 libc = "0.2"
