@@ -382,6 +382,6 @@ impl Jail {
             &path,
             self.name.as_ref().map(String::as_str),
             self.hostname.as_ref().map(String::as_str),
-        ).map(|jid| self.jid = Some(jid.clone()))
+        ).map(|jid| self.jid = Some(jid))
     }
 }
