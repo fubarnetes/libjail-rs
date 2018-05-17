@@ -5,6 +5,8 @@
 
 extern crate libc;
 
+pub mod process;
+
 extern crate errno;
 use errno::errno;
 
