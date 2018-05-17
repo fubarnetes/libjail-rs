@@ -36,6 +36,7 @@ macro_rules! iovec {
 /// let name = jail::jail_getname(1);
 /// println!("{:?}", name);
 /// ```
+#[cfg(target_os = "freebsd")]
 pub fn jail_getname(jid: i32) -> Result<String, String> {
     let mut namebuf: [u8; 256] = unsafe { mem::zeroed() };
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
@@ -81,6 +82,7 @@ pub fn jail_getname(jid: i32) -> Result<String, String> {
 /// let name = jail::jail_getid("foobar");
 /// println!("{:?}", name);
 /// ````
+#[cfg(target_os = "freebsd")]
 pub fn jail_getid(name: &str) -> Result<i32, String> {
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 

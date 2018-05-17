@@ -5,6 +5,7 @@ use std::process;
 use std::io::{Error, ErrorKind};
 use std::os::unix::process::CommandExt;
 
+#[cfg(target_os = "freebsd")]
 pub trait Jailed {
     /// Sets the child process to be executed within a jail. This translates
     /// to calling `jail_attach` in the child process. Failure in the
@@ -28,6 +29,7 @@ pub trait Jailed {
 }
 
 // FreeBSD-Jail specifc extensions to the `std::process::Command` builder
+#[cfg(target_os = "freebsd")]
 impl Jailed for process::Command {
     fn jail(&mut self, jid: i32) -> &mut process::Command {
         self.before_exec(move || {
