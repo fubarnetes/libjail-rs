@@ -145,3 +145,83 @@ pub fn jail_remove(jid: i32) -> Result<(), Error> {
         )),
     }
 }
+
+/// Represent a running jail.
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+#[cfg(target_os = "freebsd")]
+pub struct Jail {
+    /// The `jid` of the jail
+    pub jid: i32,
+}
+
+impl Default for Jail {
+    fn default() -> Jail {
+        Jail { jid: -1 }
+    }
+}
+
+impl Jail {
+    /// Create a [Jail](struct.Jail.html) instance given a `jid`. No checks
+    /// will be performed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::Jail;
+    ///
+    /// let j = Jail::from_jid(42);
+    /// ```
+    pub fn from_jid(jid: i32) -> Jail {
+        Jail { jid: jid }
+    }
+
+    /// Create a [Jail](struct.Jail.html) given the jail `name`.
+    ///
+    /// The `jid` will be internally resolved using
+    /// [jail_getid](fn.jail_getid.html).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::Jail;
+    ///
+    /// let j = Jail::from_name("testjail");
+    /// ```
+    pub fn from_name(name: &str) -> Result<Jail, Error> {
+        jail_getid(name).map(Jail::from_jid)
+    }
+
+    /// Return the jail's `name`.
+    ///
+    /// The name will be internall resolved using
+    /// [jail_getname](fn.jail_getname.html).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::Jail;
+    ///
+    /// let jail = Jail::from_name("testjail").unwrap();
+    /// assert_eq!(jail.name().unwrap(), "testjail");
+    /// ```
+    pub fn name(self: &Jail) -> Result<String, Error> {
+        jail_getname(self.jid)
+    }
+
+    /// Remove the jail.
+    ///
+    /// This will kill all processes belonging to the jail, and remove any
+    /// children of that jail.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::Jail;
+    ///
+    /// let jail = Jail::from_name("testjail").unwrap();
+    /// jail.kill();
+    /// ```
+    pub fn kill(self: &Jail) -> Result<(), Error> {
+        jail_remove(self.jid)
+    }
+}
