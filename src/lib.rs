@@ -241,20 +241,43 @@ pub fn jail_remove(jid: i32) -> Result<(), Error> {
 }
 
 /// Represent a running jail.
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 #[cfg(target_os = "freebsd")]
 pub struct Jail {
     /// The `jid` of the jail
-    pub jid: i32,
+    pub jid: Option<i32>,
+    pub path: Option<path::PathBuf>,
+    pub name: Option<String>,
+    pub hostname: Option<String>,
 }
 
 impl Default for Jail {
     fn default() -> Jail {
-        Jail { jid: -1 }
+        Jail {
+            jid: None,
+            path: None,
+            name: None,
+            hostname: None,
+        }
     }
 }
 
 impl Jail {
+    /// Create a new Jail instance given a path.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::Jail;
+    ///
+    /// let j = Jail::new("/rescue");
+    /// ```
+    pub fn new<P: Into<path::PathBuf>>(path: P) -> Jail {
+        let mut ret: Jail = Default::default();
+        ret.path = Some(path.into());
+        ret
+    }
+
     /// Create a [Jail](struct.Jail.html) instance given a `jid`. No checks
     /// will be performed.
     ///
@@ -266,7 +289,9 @@ impl Jail {
     /// let j = Jail::from_jid(42);
     /// ```
     pub fn from_jid(jid: i32) -> Jail {
-        Jail { jid: jid }
+        let mut ret: Jail = Default::default();
+        ret.jid = Some(jid);
+        ret
     }
 
     /// Create a [Jail](struct.Jail.html) given the jail `name`.
@@ -299,7 +324,13 @@ impl Jail {
     /// assert_eq!(jail.name().unwrap(), "testjail");
     /// ```
     pub fn name(self: &Jail) -> Result<String, Error> {
-        jail_getname(self.jid)
+        match self.jid {
+            Some(jid) => jail_getname(jid),
+            None => Err(Error::new(
+                ErrorKind::Other,
+                "Jail is not running or jid not known",
+            )),
+        }
     }
 
     /// Remove the jail.
@@ -312,10 +343,46 @@ impl Jail {
     /// ```
     /// use jail::Jail;
     ///
-    /// let jail = Jail::from_name("testjail").unwrap();
-    /// jail.kill();
+    /// let mut j = Jail::new("/rescue");
+    /// j.start();
+    /// j.kill();
     /// ```
-    pub fn kill(self: &Jail) -> Result<(), Error> {
-        jail_remove(self.jid)
+    pub fn kill(self: &mut Jail) -> Result<(), Error> {
+        match self.jid {
+            Some(jid) => jail_remove(jid).and_then(|_| {
+                self.jid = None;
+                Ok(())
+            }),
+            None => Err(Error::new(
+                ErrorKind::Other,
+                "Jail is not running or jid not known",
+            )),
+        }
+    }
+
+    /// Start the jail
+    ///
+    /// This will call [jail_create](fn.jail_create.html) internally.
+    ///
+    /// Examples
+    ///
+    /// ```
+    /// use jail::Jail;
+    ///
+    /// let mut j = Jail::new("/rescue");
+    /// j.start();
+    /// j.kill();
+    /// ```
+    pub fn start(self: &mut Jail) -> Result<(), Error> {
+        let path = match self.path {
+            None => return Err(Error::new(ErrorKind::Other, "Path not given")),
+            Some(ref p) => p.clone(),
+        };
+
+        jail_create(
+            &path,
+            self.name.as_ref().map(String::as_str),
+            self.hostname.as_ref().map(String::as_str),
+        ).map(|jid| self.jid = Some(jid.clone()))
     }
 }
