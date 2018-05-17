@@ -15,7 +15,7 @@ pub trait Jailed {
     ///
     /// ```
     /// use std::process::Command;
-    /// use jail::jail_getid;
+    /// use jail::sys::jail_getid;
     /// use jail::process::Jailed;
     ///
     /// let output = Command::new("hostname")
