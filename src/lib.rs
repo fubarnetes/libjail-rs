@@ -15,7 +15,6 @@ use std::ptr;
 #[macro_use]
 extern crate bitflags;
 
-use std::os::unix::ffi::OsStrExt;
 use std::path;
 
 macro_rules! iovec {
