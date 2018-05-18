@@ -26,3 +26,7 @@ bitflags = "1.0"
 [[example]]
 name = "sys_api"
 path = "examples/sys_api.rs"
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
