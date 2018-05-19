@@ -37,6 +37,7 @@ pub enum JailState {
     Running(RunningJail),
 }
 
+#[cfg(target_os = "freebsd")]
 impl Default for StoppedJail {
     fn default() -> StoppedJail {
         StoppedJail {
@@ -48,6 +49,7 @@ impl Default for StoppedJail {
 }
 
 /// Represent a stopped jail including all information required to start it
+#[cfg(target_os = "freebsd")]
 impl StoppedJail {
     /// Create a new Jail instance given a path.
     ///
@@ -94,6 +96,7 @@ impl StoppedJail {
 }
 
 /// Represent a running jail.
+#[cfg(target_os = "freebsd")]
 impl RunningJail {
     /// Create a [RunningJail](struct.RunningJail.html) instance given a `jid`.
     ///

@@ -60,6 +60,7 @@ bitflags! {
 /// assert_eq!(jail::sys::jail_getname(jid).unwrap(), "testjail");
 /// jail::sys::jail_remove(jid);
 /// ```
+#[cfg(target_os = "freebsd")]
 pub fn jail_create(
     path: &path::Path,
     name: Option<&str>,
@@ -222,6 +223,7 @@ pub fn jail_getid(name: &str) -> Result<i32, Error> {
 ///
 /// jail_remove(1);
 /// ```
+#[cfg(target_os = "freebsd")]
 pub fn jail_remove(jid: i32) -> Result<(), Error> {
     let ret = unsafe { libc::jail_remove(jid) };
     match ret {
