@@ -16,6 +16,9 @@ extern crate sysctl;
 mod sys;
 
 #[macro_use]
+extern crate serde_derive;
+
+#[macro_use]
 extern crate bitflags;
 
 extern crate nix;
@@ -37,6 +40,7 @@ pub mod process;
 
 /// Represents a running or stopped jail.
 #[cfg(target_os = "freebsd")]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Jail {
     Stopped(StoppedJail),
     Running(RunningJail),
