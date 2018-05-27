@@ -25,5 +25,8 @@ fn main() {
 
     println!("output: {}", String::from_utf8_lossy(&output.stdout));
 
+    let param = jail::param::get(jid, "host.hostuuid");
+    println!("param: {:?}", param);
+
     jail::sys::jail_remove(jid).expect("could not kill jail");
 }

@@ -3,14 +3,21 @@
 //! it aims to provide the features exposed by the FreeBSD Jail Library
 //! [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable)
 
-extern crate libc;
+extern crate byteorder;
 
 #[macro_use]
 extern crate failure;
 
+extern crate libc;
+
+extern crate sysctl;
+
 pub mod process;
 
+#[macro_use]
 pub mod sys;
+
+pub mod param;
 
 #[macro_use]
 extern crate bitflags;
@@ -33,6 +40,33 @@ pub enum JailError {
 
     #[fail(display = "Path not given")]
     PathNotGiven,
+
+    #[fail(display = "No such parameter: {}", _0)]
+    NoSuchParameter(String),
+
+    #[fail(display = "Could not parameter type: {:?}", _0)]
+    ParameterTypeError(#[cause] sysctl::SysctlError),
+
+    #[fail(display = "Could not get string parameter length: {:?}", _0)]
+    ParameterStringLengthError(#[cause] sysctl::SysctlError),
+
+    #[fail(display = "Parameter string length returned ('{}') is not a number.", _0)]
+    ParameterLengthNaN(String),
+
+    #[fail(display = "Parameter type not supported: {:?}", _0)]
+    ParameterTypeUnsupported(sysctl::CtlType),
+
+    #[fail(
+        display = "Unexpected parameter type for '{}': expected {:?}, but got {:?}",
+        name,
+        expected,
+        got
+    )]
+    UnexpectedParameterType {
+        name: String,
+        expected: sysctl::CtlType,
+        got: param::Value,
+    },
 }
 
 impl JailError {
@@ -169,6 +203,26 @@ impl RunningJail {
     /// ```
     pub fn name(self: &RunningJail) -> Result<String, JailError> {
         sys::jail_getname(self.jid)
+    }
+
+    /// Return a jail parameter.
+    ///
+    /// # Examples
+    /// ```
+    /// use jail::StoppedJail;
+    ///
+    /// let j = StoppedJail::new("/rescue");
+    /// let mut running = j.start().unwrap();
+    ///
+    /// let hostuuid = running.param("host.hostuuid")
+    ///     .expect("could not get jail hostuuid");
+    ///
+    /// println!("jail uuid: {:?}", hostuuid);
+    ///
+    /// running.kill();
+    /// ```
+    pub fn param(self: &Self, name: &str) -> Result<param::Value, JailError> {
+        param::get(self.jid, name)
     }
 
     /// Remove the jail.

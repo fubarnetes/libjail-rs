@@ -8,10 +8,14 @@ use libc;
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::ptr;
+use std::str;
 
 use std::path;
 
+use sysctl::CtlType;
 use JailError;
+
+use param;
 
 macro_rules! iovec {
     ($value:expr, $size:expr) => {
@@ -125,39 +129,13 @@ pub fn jail_create(
 /// ```
 #[cfg(target_os = "freebsd")]
 pub fn jail_getname(jid: i32) -> Result<String, JailError> {
-    let mut namebuf: [u8; 256] = unsafe { mem::zeroed() };
-    let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
-    let mut jid = jid;
-
-    let mut jiov: Vec<libc::iovec> = vec![
-        iovec!(b"jid\0"),
-        iovec!(&mut jid as *mut _, mem::size_of::<i32>()),
-        iovec!(b"name\0"),
-        iovec!(namebuf.as_mut_ptr(), namebuf.len()),
-        iovec!(b"errmsg\0"),
-        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
-    ];
-
-    let jid = unsafe {
-        libc::jail_get(
-            jiov[..].as_mut_ptr() as *mut libc::iovec,
-            jiov.len() as u32,
-            JailFlags::empty().bits,
-        )
-    };
-
-    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) }
-        .to_string_lossy()
-        .to_string();
-
-    let name = unsafe { CStr::from_ptr(namebuf.as_ptr() as *mut i8) };
-
-    match jid {
-        e if e < 0 => match errmsg[0] {
-            0 => Err(JailError::from_errno()),
-            _ => Err(JailError::JailGetError(err)),
-        },
-        _ => Ok(name.to_string_lossy().into_owned()),
+    match param::get(jid, "name")? {
+        param::Value::String(s) => Ok(s),
+        unexpected => Err(JailError::UnexpectedParameterType {
+            name: "name".to_string(),
+            expected: CtlType::String,
+            got: unexpected,
+        }),
     }
 }
 
