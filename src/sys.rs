@@ -6,11 +6,12 @@
 use libc;
 
 use std::ffi::{CStr, CString};
-use std::io::{Error, ErrorKind};
 use std::mem;
 use std::ptr;
 
 use std::path;
+
+use JailError;
 
 macro_rules! iovec {
     ($value:expr, $size:expr) => {
@@ -65,7 +66,7 @@ pub fn jail_create(
     path: &path::Path,
     name: Option<&str>,
     hostname: Option<&str>,
-) -> Result<i32, Error> {
+) -> Result<i32, JailError> {
     let pathstr = CString::new(path.as_os_str().to_str().unwrap()).unwrap();
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
@@ -101,15 +102,14 @@ pub fn jail_create(
         )
     };
 
-    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) };
+    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) }
+        .to_string_lossy()
+        .to_string();
 
     match jid {
         e if e < 0 => match errmsg[0] {
-            0 => Err(Error::last_os_error()),
-            _ => Err(Error::new(
-                ErrorKind::Other,
-                format!("{}", err.to_string_lossy()),
-            )),
+            0 => Err(JailError::from_errno()),
+            _ => Err(JailError::JailSetError(err)),
         },
         _ => Ok(jid),
     }
@@ -124,7 +124,7 @@ pub fn jail_create(
 /// println!("{:?}", name);
 /// ```
 #[cfg(target_os = "freebsd")]
-pub fn jail_getname(jid: i32) -> Result<String, Error> {
+pub fn jail_getname(jid: i32) -> Result<String, JailError> {
     let mut namebuf: [u8; 256] = unsafe { mem::zeroed() };
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
     let mut jid = jid;
@@ -146,16 +146,16 @@ pub fn jail_getname(jid: i32) -> Result<String, Error> {
         )
     };
 
-    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) };
+    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) }
+        .to_string_lossy()
+        .to_string();
+
     let name = unsafe { CStr::from_ptr(namebuf.as_ptr() as *mut i8) };
 
     match jid {
         e if e < 0 => match errmsg[0] {
-            0 => Err(Error::last_os_error()),
-            _ => Err(Error::new(
-                ErrorKind::Other,
-                format!("{}", err.to_string_lossy()),
-            )),
+            0 => Err(JailError::from_errno()),
+            _ => Err(JailError::JailGetError(err)),
         },
         _ => Ok(name.to_string_lossy().into_owned()),
     }
@@ -173,7 +173,7 @@ pub fn jail_getname(jid: i32) -> Result<String, Error> {
 /// println!("{:?}", name);
 /// ````
 #[cfg(target_os = "freebsd")]
-pub fn jail_getid(name: &str) -> Result<i32, Error> {
+pub fn jail_getid(name: &str) -> Result<i32, JailError> {
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
     if let Ok(jid) = name.parse::<i32>() {
@@ -197,15 +197,14 @@ pub fn jail_getid(name: &str) -> Result<i32, Error> {
         )
     };
 
-    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) };
+    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) }
+        .to_string_lossy()
+        .to_string();
 
     match jid {
         e if e < 0 => match errmsg[0] {
-            0 => Err(Error::last_os_error()),
-            _ => Err(Error::new(
-                ErrorKind::Other,
-                format!("{}", err.to_string_lossy()),
-            )),
+            0 => Err(JailError::from_errno()),
+            _ => Err(JailError::JailGetError(err)),
         },
         _ => Ok(jid),
     }
@@ -224,14 +223,11 @@ pub fn jail_getid(name: &str) -> Result<i32, Error> {
 /// jail_remove(1);
 /// ```
 #[cfg(target_os = "freebsd")]
-pub fn jail_remove(jid: i32) -> Result<(), Error> {
+pub fn jail_remove(jid: i32) -> Result<(), JailError> {
     let ret = unsafe { libc::jail_remove(jid) };
     match ret {
         0 => Ok(()),
-        -1 => Err(Error::last_os_error()),
-        _ => Err(Error::new(
-            ErrorKind::Other,
-            "invalid return value from jail_remove",
-        )),
+        -1 => Err(JailError::from_errno()),
+        _ => Err(JailError::JailRemoveFailed),
     }
 }

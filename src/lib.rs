@@ -5,16 +5,41 @@
 
 extern crate libc;
 
+#[macro_use]
+extern crate failure;
+
 pub mod process;
 
 pub mod sys;
-
-use std::io::{Error, ErrorKind};
 
 #[macro_use]
 extern crate bitflags;
 
 use std::path;
+
+#[derive(Fail, Debug)]
+pub enum JailError {
+    #[fail(display = "An IO Error occurred: {:?}", _0)]
+    IoError(#[cause] std::io::Error),
+
+    #[fail(display = "jail_get syscall failed. The error message returned was: {}", _0)]
+    JailGetError(String),
+
+    #[fail(display = "jail_set syscall failed. The error message returned was: {}", _0)]
+    JailSetError(String),
+
+    #[fail(display = "invalid return code from jail_remove")]
+    JailRemoveFailed,
+
+    #[fail(display = "Path not given")]
+    PathNotGiven,
+}
+
+impl JailError {
+    fn from_errno() -> Self {
+        JailError::IoError(std::io::Error::last_os_error())
+    }
+}
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 #[cfg(target_os = "freebsd")]
@@ -81,9 +106,9 @@ impl StoppedJail {
     /// let mut running = j.start().unwrap();
     /// running.kill();
     /// ```
-    pub fn start(self: StoppedJail) -> Result<RunningJail, Error> {
+    pub fn start(self: StoppedJail) -> Result<RunningJail, JailError> {
         let path = match self.path {
-            None => return Err(Error::new(ErrorKind::Other, "Path not given")),
+            None => return Err(JailError::PathNotGiven),
             Some(ref p) => p.clone(),
         };
 
@@ -125,7 +150,7 @@ impl RunningJail {
     ///
     /// let j = RunningJail::from_name("testjail");
     /// ```
-    pub fn from_name(name: &str) -> Result<RunningJail, Error> {
+    pub fn from_name(name: &str) -> Result<RunningJail, JailError> {
         sys::jail_getid(name).map(RunningJail::from_jid)
     }
 
@@ -142,7 +167,7 @@ impl RunningJail {
     /// let jail = RunningJail::from_name("testjail").unwrap();
     /// assert_eq!(jail.name().unwrap(), "testjail");
     /// ```
-    pub fn name(self: &RunningJail) -> Result<String, Error> {
+    pub fn name(self: &RunningJail) -> Result<String, JailError> {
         sys::jail_getname(self.jid)
     }
 
@@ -160,7 +185,7 @@ impl RunningJail {
     /// let mut running = j.start().unwrap();
     /// running.kill();
     /// ```
-    pub fn kill(self: &mut RunningJail) -> Result<(), Error> {
+    pub fn kill(self: &mut RunningJail) -> Result<(), JailError> {
         sys::jail_remove(self.jid).and_then(|_| Ok(()))
     }
 }
