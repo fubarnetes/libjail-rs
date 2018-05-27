@@ -61,8 +61,9 @@ bitflags! {
 /// ```
 /// use std::path::Path;
 ///
-/// let jid = jail::sys::jail_create(Path::new("/tmp"), Some("testjail"), None).unwrap();
-/// assert_eq!(jail::sys::jail_getname(jid).unwrap(), "testjail");
+/// let jid = jail::sys::jail_create(Path::new("/rescue"), Some("testjail_create"), None)
+///     .expect("could not start jail");
+///
 /// jail::sys::jail_remove(jid);
 /// ```
 #[cfg(target_os = "freebsd")]
@@ -147,8 +148,21 @@ pub fn jail_getname(jid: i32) -> Result<String, JailError> {
 /// # Examples
 ///
 /// ```
-/// let name = jail::sys::jail_getid("foobar");
-/// println!("{:?}", name);
+/// use std::path::Path;
+///
+/// fn main() {
+///     let jid = jail::sys::jail_create(
+///            Path::new("/rescue"),
+///            Some("testjail_getid"),
+///            None)
+///        .expect("could not start jail");
+///
+///     let jid2 = jail::sys::jail_getid("testjail_getid")
+///        .expect("could not get ID of test jail");
+///
+///     assert_eq!(jid, jid2);
+///     jail::sys::jail_remove(jid);
+/// }
 /// ````
 #[cfg(target_os = "freebsd")]
 pub fn jail_getid(name: &str) -> Result<i32, JailError> {
@@ -196,9 +210,12 @@ pub fn jail_getid(name: &str) -> Result<i32, JailError> {
 /// Examples:
 ///
 /// ```
-/// use jail::sys::jail_remove;
+/// use std::path::Path;
 ///
-/// jail_remove(1);
+/// let jid = jail::sys::jail_create(Path::new("/rescue"), Some("testjail_remove"), None)
+///     .expect("could not start jail");
+///
+/// jail::sys::jail_remove(jid);
 /// ```
 #[cfg(target_os = "freebsd")]
 pub fn jail_remove(jid: i32) -> Result<(), JailError> {

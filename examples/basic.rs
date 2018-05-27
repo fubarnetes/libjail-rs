@@ -6,7 +6,7 @@ use jail::process::Jailed;
 
 fn main() {
     let mut stopped = jail::StoppedJail::new("/rescue");
-    stopped.name = Some("testjail".to_string());
+    stopped.name = Some("example_basic".to_string());
     stopped.hostname = Some("testjail.example.org".to_string());
 
     let mut running = stopped.start().expect("Failed to start jail");
@@ -20,7 +20,7 @@ fn main() {
 
     println!("Let's run a command in the jail!");
     let output = Command::new("/hostname")
-        .jail(running.jid)
+        .jail(&running.jid)
         .output()
         .expect("Failed to execute command in jail");
 

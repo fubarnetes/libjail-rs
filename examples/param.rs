@@ -3,7 +3,7 @@ use jail::param;
 use std::path::Path;
 
 fn main() {
-    let jid = jail::sys::jail_create(Path::new("/tmp"), Some("testjail"), None)
+    let jid = jail::sys::jail_create(Path::new("/tmp"), Some("example_param"), None)
         .expect("could not start jail");
 
     let hostuuid = match jail::param::get(jid, "host.hostuuid").expect("could not get hostuuid") {

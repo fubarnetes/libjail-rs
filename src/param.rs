@@ -76,27 +76,18 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
 /// # Examples
 /// ```
 /// extern crate jail;
-/// use jail::param::Value;
+/// use jail::param;
 /// use std::path::Path;
 ///
-/// fn main() {
-///     let jid = jail::sys::jail_create(
-///             Path::new("/rescue"),
-///             Some("testjail"),
-///             None)
-///         .expect("could not start jail");
+/// let jid = jail::sys::jail_create(Path::new("/rescue"), Some("testjail_param"), None)
+///     .expect("could not start jail");
 ///
-///     let hostuuid = match jail::param::get(jid, "host.hostuiid")
-///         .expect("could not get hostuuid")
-///     {
-///         Value::String(s) => s,
-///         _ => panic!("hostuuid is not a string")
-///     };
+/// let hostuuid = jail::param::get(jid, "host.hostuuid")
+///     .expect("could not get parameter");
 ///
-///     println!("{:?}", hostuuid);
+/// println!("{:?}", hostuuid);
 ///
-///     jail::sys::jail_remove(jid);
-/// }
+/// jail::sys::jail_remove(jid);
 /// ```
 #[cfg(target_os = "freebsd")]
 pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
