@@ -24,4 +24,7 @@ bitflags = "1.0"
 byteorder = "^1.0.0"
 failure = "0.1"
 libc = "0.2"
-sysctl = { git = "https://github.com/fabianfreyer/sysctl-rs", branch="struct-interface" }
+backtrace-sys = "=0.1.19"
+
+[dependencies.sysctl]
+path = "vendor/sysctl-rs"
