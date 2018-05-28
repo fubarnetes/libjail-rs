@@ -1,3 +1,0 @@
-[submodule "vendor/sysctl-rs"]
-	path = vendor/sysctl-rs
-	url = https://github.com/fabianfreyer/sysctl-rs

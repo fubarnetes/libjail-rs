@@ -25,6 +25,4 @@ byteorder = "^1.0.0"
 failure = "0.1"
 libc = "0.2"
 backtrace-sys = "=0.1.19"
-
-[dependencies.sysctl]
-path = "vendor/sysctl-rs"
+sysctl = "0.2"
