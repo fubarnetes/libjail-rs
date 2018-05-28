@@ -165,7 +165,7 @@ impl StoppedJail {
     ///
     /// assert_eq!(stopped.name, Some("test_stopped_name".to_string()));
     /// ```
-    pub fn name<S: Into<String>>(mut self: Self, name: S) -> Self{
+    pub fn name<S: Into<String>>(mut self: Self, name: S) -> Self {
         self.name = Some(name.into());
         self
     }
