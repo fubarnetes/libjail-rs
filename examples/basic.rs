@@ -3,10 +3,14 @@ extern crate jail;
 use std::process::Command;
 
 use jail::process::Jailed;
+use jail::param;
 
 fn main() {
-    let mut stopped = jail::StoppedJail::new("/rescue");
-    stopped.name = Some("example_basic".to_string());
+    let mut stopped = jail::StoppedJail::new("/rescue")
+        .name("example_basic")
+        .param("allow.raw_sockets", param::Value::Int(1))
+        .param("allow.sysvipc", param::Value::Int(1));
+
     stopped.hostname = Some("testjail.example.org".to_string());
 
     let mut running = stopped.start().expect("Failed to start jail");

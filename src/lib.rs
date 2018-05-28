@@ -23,6 +23,7 @@ pub mod param;
 extern crate bitflags;
 
 use std::path;
+use std::collections::HashMap;
 
 #[derive(Fail, Debug)]
 pub enum JailError {
@@ -67,6 +68,9 @@ pub enum JailError {
         expected: sysctl::CtlType,
         got: param::Value,
     },
+
+    #[fail(display = "Could not serialize value to bytes")]
+    SerializeFailed,
 }
 
 impl JailError {
@@ -75,12 +79,13 @@ impl JailError {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 #[cfg(target_os = "freebsd")]
 pub struct StoppedJail {
     pub path: Option<path::PathBuf>,
     pub name: Option<String>,
     pub hostname: Option<String>,
+    pub params: HashMap<String, param::Value>,
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
@@ -103,6 +108,7 @@ impl Default for StoppedJail {
             path: None,
             name: None,
             hostname: None,
+            params: HashMap::new(),
         }
     }
 }
@@ -146,11 +152,17 @@ impl StoppedJail {
             Some(ref p) => p.clone(),
         };
 
-        sys::jail_create(
+        let ret = sys::jail_create(
             &path,
             self.name.as_ref().map(String::as_str),
             self.hostname.as_ref().map(String::as_str),
-        ).map(|jid| RunningJail::from_jid(jid))
+        ).map(|jid| RunningJail::from_jid(jid))?;
+
+        for (param, value) in self.params {
+            param::set(ret.jid, &param, value)?;
+        }
+
+        Ok(ret)
     }
 
     /// Set the jail name
@@ -167,6 +179,23 @@ impl StoppedJail {
     /// ```
     pub fn name<S: Into<String>>(mut self: Self, name: S) -> Self {
         self.name = Some(name.into());
+        self
+    }
+
+    /// Set a jail parameter
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use jail::StoppedJail;
+    /// #
+    /// use jail::param;
+    ///
+    /// let mut stopped = StoppedJail::new("/rescue")
+    ///     .param("allow.raw_sockets", param::Value::Int(1));
+    /// ```
+    pub fn param<S: Into<String>>(mut self: Self, param: S, value: param::Value) -> Self {
+        self.params.insert(param.into(), value);
         self
     }
 }
@@ -255,6 +284,26 @@ impl RunningJail {
     /// ```
     pub fn param(self: &Self, name: &str) -> Result<param::Value, JailError> {
         param::get(self.jid, name)
+    }
+
+    /// Set a jail parameter.
+    ///
+    /// # Examples
+    /// ```
+    /// # use jail::StoppedJail;
+    /// # let mut running = StoppedJail::new("/rescue")
+    /// #     .start().unwrap();
+    /// #
+    /// use jail::param;
+    /// running.param_set("allow.raw_sockets", param::Value::Int(1))
+    ///     .expect("could not set parameter");
+    /// # let readback = running.param("allow.raw_sockets")
+    /// #   .expect("could not read back value");
+    /// # assert_eq!(readback, param::Value::Int(1));
+    /// # running.kill();
+    /// ```
+    pub fn param_set(self: &Self, name: &str, value: param::Value) -> Result<(), JailError> {
+        param::set(self.jid, name, value)
     }
 
     /// Remove the jail.
