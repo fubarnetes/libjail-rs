@@ -20,9 +20,8 @@ is-it-maintained-issue-resolution = { repository = "fubarnetes/libjail-rs" }
 is-it-maintained-open-issues = { repository = "fubarnetes/libjail-rs" }
 
 [dependencies]
-bitflags = "1.0"
-byteorder = "^1.0.0"
-failure = "0.1"
-libc = "0.2"
-backtrace-sys = "=0.1.19"
-sysctl = "0.2"
+bitflags = "^1"
+byteorder = "^1.2.3"
+failure = "~0.1.1"
+libc = "~0.2.41"
+sysctl = "~0.2.0"
