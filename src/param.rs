@@ -313,7 +313,6 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
         )
     };
 
-
     let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) }
         .to_string_lossy()
         .to_string();
@@ -325,5 +324,4 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
         },
         _ => Ok(()),
     }
-
 }

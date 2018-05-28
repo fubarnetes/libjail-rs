@@ -2,8 +2,8 @@ extern crate jail;
 
 use std::process::Command;
 
-use jail::process::Jailed;
 use jail::param;
+use jail::process::Jailed;
 
 fn main() {
     let mut stopped = jail::StoppedJail::new("/rescue")

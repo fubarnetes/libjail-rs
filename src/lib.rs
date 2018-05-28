@@ -22,8 +22,8 @@ pub mod param;
 #[macro_use]
 extern crate bitflags;
 
-use std::path;
 use std::collections::HashMap;
+use std::path;
 
 #[derive(Fail, Debug)]
 pub enum JailError {
