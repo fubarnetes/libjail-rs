@@ -14,26 +14,25 @@ pub trait Jailed {
     /// # Examples
     ///
     /// ```
-    /// use std::process::Command;
+    /// # use std::process::Command;
     /// use jail::process::Jailed;
-    /// use std::path::Path;
+    /// # use std::path::Path;
     ///
-    /// let jid = jail::sys::jail_create(Path::new("/rescue"), Some("testjail_process"), None)
-    ///     .expect("could not start jail");
-    ///
+    /// # let jid = jail::sys::jail_create(Path::new("/rescue"), Some("testjail_process"), None)
+    /// #     .expect("could not start jail");
+    /// #
     /// let output = Command::new("/hostname")
     ///              .jail(&jid)
     ///              .output()
     ///              .expect("Failed to execute command");
     ///
     /// println!("output: {:?}", output.stdout);
-    ///
-    /// jail::sys::jail_remove(jid);
+    /// # jail::sys::jail_remove(jid);
     /// ```
     fn jail(&mut self, jid: &i32) -> &mut process::Command;
 }
 
-// FreeBSD-Jail specifc extensions to the `std::process::Command` builder
+/// FreeBSD-Jail specifc extensions to the `std::process::Command` builder
 #[cfg(target_os = "freebsd")]
 impl Jailed for process::Command {
     fn jail(&mut self, jid: &i32) -> &mut process::Command {

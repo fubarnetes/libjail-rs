@@ -138,7 +138,7 @@ impl StoppedJail {
     ///
     /// let stopped = StoppedJail::new("/rescue");
     /// let mut running = stopped.start().unwrap();
-    /// running.kill();
+    /// # running.kill();
     /// ```
     pub fn start(self: StoppedJail) -> Result<RunningJail, JailError> {
         let path = match self.path {
@@ -158,8 +158,8 @@ impl StoppedJail {
     /// # Examples
     ///
     /// ```
-    /// use jail::StoppedJail;
-    ///
+    /// # use jail::StoppedJail;
+    /// #
     /// let mut stopped = StoppedJail::new("/rescue")
     ///     .name("test_stopped_name");
     ///
@@ -181,13 +181,13 @@ impl RunningJail {
     /// # Examples
     ///
     /// ```
-    /// use std::path::Path;
-    /// use jail::RunningJail;
-    /// use jail::sys::{jail_create, jail_remove};
+    /// # use std::path::Path;
+    /// # use jail::RunningJail;
+    /// # use jail::sys::{jail_create, jail_remove};
     ///
-    /// let jid = jail_create(Path::new("/rescue"), Some("testjail_from_jid"), None).unwrap();
-    /// let mut j = RunningJail::from_jid(jid);
-    /// j.kill();
+    /// # let jid = jail_create(Path::new("/rescue"), Some("testjail_from_jid"), None).unwrap();
+    /// let mut running = RunningJail::from_jid(jid);
+    /// # running.kill();
     /// ```
     pub fn from_jid(jid: i32) -> RunningJail {
         RunningJail { jid: jid }
@@ -201,17 +201,17 @@ impl RunningJail {
     /// # Examples
     ///
     /// ```
-    /// use std::path::Path;
-    /// use jail::RunningJail;
-    /// use jail::sys::{jail_create, jail_remove};
-    ///
-    /// let jid = jail_create(Path::new("/rescue"), Some("testjail_from_name"), None)
-    ///     .expect("could not start testjail");
-    ///
-    /// let mut j = RunningJail::from_name("testjail_from_name")
+    /// # use std::path::Path;
+    /// # use jail::RunningJail;
+    /// # use jail::sys::{jail_create, jail_remove};
+    /// #
+    /// # let jid = jail_create(Path::new("/rescue"), Some("testjail_from_name"), None)
+    /// #     .expect("could not start testjail");
+    /// #
+    /// let mut running = RunningJail::from_name("testjail_from_name")
     ///     .expect("Could not get testjail");
-    ///
-    /// j.kill();
+    /// #
+    /// # running.kill();
     /// ```
     pub fn from_name(name: &str) -> Result<RunningJail, JailError> {
         sys::jail_getid(name).map(RunningJail::from_jid)
@@ -225,16 +225,15 @@ impl RunningJail {
     /// # Examples
     ///
     /// ```
-    /// use jail::StoppedJail;
-    ///
-    /// let mut running = StoppedJail::new("/rescue")
-    ///     .name("testjail_name")
-    ///     .start()
-    ///     .expect("Could not start jail");
-    ///
+    /// # use jail::StoppedJail;
+    /// #
+    /// # let mut running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_name")
+    /// #     .start()
+    /// #     .expect("Could not start jail");
     /// assert_eq!(running.name().unwrap(), "testjail_name");
-    ///
-    /// running.kill();
+    /// #
+    /// # running.kill();
     /// ```
     pub fn name(self: &RunningJail) -> Result<String, JailError> {
         sys::jail_getname(self.jid)
@@ -244,17 +243,15 @@ impl RunningJail {
     ///
     /// # Examples
     /// ```
-    /// use jail::StoppedJail;
-    ///
-    /// let j = StoppedJail::new("/rescue");
-    /// let mut running = j.start().unwrap();
-    ///
+    /// # use jail::StoppedJail;
+    /// # let mut running = StoppedJail::new("/rescue")
+    /// #     .start().unwrap();
+    /// #
     /// let hostuuid = running.param("host.hostuuid")
     ///     .expect("could not get jail hostuuid");
-    ///
-    /// println!("jail uuid: {:?}", hostuuid);
-    ///
-    /// running.kill();
+    /// #
+    /// # println!("jail uuid: {:?}", hostuuid);
+    /// # running.kill();
     /// ```
     pub fn param(self: &Self, name: &str) -> Result<param::Value, JailError> {
         param::get(self.jid, name)
@@ -268,10 +265,9 @@ impl RunningJail {
     /// # Examples
     ///
     /// ```
-    /// use jail::StoppedJail;
-    ///
-    /// let j = StoppedJail::new("/rescue");
-    /// let mut running = j.start().unwrap();
+    /// # use jail::StoppedJail;
+    /// # let mut running = StoppedJail::new("/rescue")
+    /// #     .start().unwrap();
     /// running.kill();
     /// ```
     pub fn kill(self: &mut RunningJail) -> Result<(), JailError> {
