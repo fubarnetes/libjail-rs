@@ -157,7 +157,7 @@ impl StoppedJail {
     /// use jail::StoppedJail;
     ///
     /// let stopped = StoppedJail::new("/rescue");
-    /// let mut running = stopped.start().unwrap();
+    /// let running = stopped.start().unwrap();
     /// # running.kill();
     /// ```
     pub fn start(self: StoppedJail) -> Result<RunningJail, JailError> {
@@ -273,7 +273,7 @@ impl RunningJail {
     /// # use jail::sys::{jail_create, jail_remove};
     ///
     /// # let jid = jail_create(Path::new("/rescue"), Some("testjail_from_jid"), None).unwrap();
-    /// let mut running = RunningJail::from_jid(jid);
+    /// let running = RunningJail::from_jid(jid);
     /// # running.kill();
     /// ```
     pub fn from_jid(jid: i32) -> RunningJail {
@@ -295,7 +295,7 @@ impl RunningJail {
     /// # let jid = jail_create(Path::new("/rescue"), Some("testjail_from_name"), None)
     /// #     .expect("could not start testjail");
     /// #
-    /// let mut running = RunningJail::from_name("testjail_from_name")
+    /// let running = RunningJail::from_name("testjail_from_name")
     ///     .expect("Could not get testjail");
     /// #
     /// # running.kill();
@@ -314,7 +314,7 @@ impl RunningJail {
     /// ```
     /// # use jail::StoppedJail;
     /// #
-    /// # let mut running = StoppedJail::new("/rescue")
+    /// # let running = StoppedJail::new("/rescue")
     /// #     .name("testjail_name")
     /// #     .start()
     /// #     .expect("Could not start jail");
@@ -332,7 +332,7 @@ impl RunningJail {
     /// ```
     /// # use jail::StoppedJail;
     /// # use std::net::IpAddr;
-    /// # let mut running = StoppedJail::new("/rescue")
+    /// # let running = StoppedJail::new("/rescue")
     /// #     .name("testjail_ip")
     /// #     .ip("127.0.1.2".parse().unwrap())
     /// #     .ip("fe80::2".parse().unwrap())
@@ -368,7 +368,7 @@ impl RunningJail {
     /// # Examples
     /// ```
     /// # use jail::StoppedJail;
-    /// # let mut running = StoppedJail::new("/rescue")
+    /// # let running = StoppedJail::new("/rescue")
     /// #     .start().unwrap();
     /// #
     /// let hostuuid = running.param("host.hostuuid")
@@ -386,7 +386,7 @@ impl RunningJail {
     /// # Examples
     /// ```
     /// # use jail::StoppedJail;
-    /// # let mut running = StoppedJail::new("/rescue")
+    /// # let running = StoppedJail::new("/rescue")
     /// #     .start().unwrap();
     /// #
     /// use jail::param;
@@ -401,7 +401,7 @@ impl RunningJail {
         param::set(self.jid, name, value)
     }
 
-    /// Remove the jail.
+    /// Kill a running jail, consuming it.
     ///
     /// This will kill all processes belonging to the jail, and remove any
     /// children of that jail.
@@ -410,11 +410,11 @@ impl RunningJail {
     ///
     /// ```
     /// # use jail::StoppedJail;
-    /// # let mut running = StoppedJail::new("/rescue")
+    /// # let running = StoppedJail::new("/rescue")
     /// #     .start().unwrap();
     /// running.kill();
     /// ```
-    pub fn kill(self: &mut RunningJail) -> Result<(), JailError> {
+    pub fn kill(self: RunningJail) -> Result<(), JailError> {
         sys::jail_remove(self.jid).and_then(|_| Ok(()))
     }
 }

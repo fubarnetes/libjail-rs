@@ -15,7 +15,7 @@ fn main() {
 
     stopped.hostname = Some("testjail.example.org".to_string());
 
-    let mut running = stopped.start().expect("Failed to start jail");
+    let running = stopped.start().expect("Failed to start jail");
 
     println!("created new jail with JID {}", running.jid);
 

@@ -11,7 +11,7 @@ use test::Bencher;
 #[bench]
 fn start_stop_jail(b: &mut Bencher) {
     b.iter(|| {
-        let mut running = StoppedJail::new("/rescue").start().unwrap();
+        let running = StoppedJail::new("/rescue").start().unwrap();
         running.kill().unwrap();
     });
 }
@@ -19,7 +19,7 @@ fn start_stop_jail(b: &mut Bencher) {
 #[bench]
 fn start_stop_ipv4jail(b: &mut Bencher) {
     b.iter(|| {
-        let mut running = StoppedJail::new("/rescue")
+        let running = StoppedJail::new("/rescue")
             .ip("127.0.1.1".parse().unwrap())
             .start()
             .unwrap();
@@ -30,7 +30,7 @@ fn start_stop_ipv4jail(b: &mut Bencher) {
 #[bench]
 fn start_stop_ipv6jail(b: &mut Bencher) {
     b.iter(|| {
-        let mut running = StoppedJail::new("/rescue")
+        let running = StoppedJail::new("/rescue")
             .ip("fe80::2".parse().unwrap())
             .start()
             .unwrap();
@@ -41,7 +41,7 @@ fn start_stop_ipv6jail(b: &mut Bencher) {
 #[bench]
 fn start_stop_ipjail(b: &mut Bencher) {
     b.iter(|| {
-        let mut running = StoppedJail::new("/rescue")
+        let running = StoppedJail::new("/rescue")
             .ip("127.0.1.1".parse().unwrap())
             .ip("fe80::2".parse().unwrap())
             .start()
@@ -53,7 +53,7 @@ fn start_stop_ipjail(b: &mut Bencher) {
 #[bench]
 fn start_echo_helloworld_stop(b: &mut Bencher) {
     b.iter(|| {
-        let mut running = StoppedJail::new("/rescue").start().unwrap();
+        let running = StoppedJail::new("/rescue").start().unwrap();
 
         Command::new("/echo")
             .arg("hello world")
