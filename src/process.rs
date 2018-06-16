@@ -36,7 +36,7 @@ pub trait Jailed {
 #[cfg(target_os = "freebsd")]
 impl Jailed for process::Command {
     fn jail(&mut self, jid: &i32) -> &mut process::Command {
-        let jid = jid.clone();
+        let jid = *jid;
         self.before_exec(move || {
             let ret = unsafe { libc::jail_attach(jid) };
             match ret {

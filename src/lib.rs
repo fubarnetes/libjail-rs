@@ -170,7 +170,7 @@ impl StoppedJail {
             &path,
             self.name.as_ref().map(String::as_str),
             self.hostname.as_ref().map(String::as_str),
-        ).map(|jid| RunningJail::from_jid(jid))?;
+        ).map(RunningJail::from_jid)?;
 
         // Set the IP Addresses
         let ip4s = param::Value::Ipv4Addrs(
@@ -178,7 +178,7 @@ impl StoppedJail {
                 .iter()
                 .filter(|ip| ip.is_ipv4())
                 .map(|ip| match ip {
-                    std::net::IpAddr::V4(ip4) => ip4.clone(),
+                    std::net::IpAddr::V4(ip4) => *ip4,
                     _ => panic!("unreachable"),
                 })
                 .collect(),
@@ -189,7 +189,7 @@ impl StoppedJail {
                 .iter()
                 .filter(|ip| ip.is_ipv6())
                 .map(|ip| match ip {
-                    std::net::IpAddr::V6(ip6) => ip6.clone(),
+                    std::net::IpAddr::V6(ip6) => *ip6,
                     _ => panic!("unreachable"),
                 })
                 .collect(),
@@ -277,7 +277,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn from_jid(jid: i32) -> RunningJail {
-        RunningJail { jid: jid }
+        RunningJail { jid }
     }
 
     /// Create a [RunningJail](struct.RunningJail.html) given the jail `name`.

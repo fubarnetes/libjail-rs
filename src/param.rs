@@ -141,17 +141,12 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
 
     let ctl = Ctl::new(&ctlname).map_err(|_| JailError::NoSuchParameter(name.to_string()))?;
 
-    let paramtype = ctl
-        .value_type()
-        .map_err(|e| JailError::ParameterTypeError(e))?;
+    let paramtype = ctl.value_type().map_err(JailError::ParameterTypeError)?;
 
     let typesize = match paramtype {
         CtlType::Int => mem::size_of::<libc::c_int>(),
         CtlType::String => {
-            let length = match ctl
-                .value()
-                .map_err(|e| JailError::ParameterStringLengthError(e))?
-            {
+            let length = match ctl.value().map_err(JailError::ParameterStringLengthError)? {
                 CtlValue::String(l) => l,
                 _ => panic!("param sysctl reported to be string, but isn't"),
             };
@@ -172,23 +167,16 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
         CtlType::S16 => mem::size_of::<i16>(),
         CtlType::S32 => mem::size_of::<i32>(),
         CtlType::U32 => mem::size_of::<u32>(),
-        CtlType::Struct => {
-            let length = match ctl
-                .value()
-                .map_err(|e| JailError::ParameterStructLengthError(e))?
-            {
-                CtlValue::Struct(data) => {
-                    assert!(
-                        data.len() >= mem::size_of::<usize>(),
-                        "Error: struct sysctl returned too few bytes."
-                    );
-                    LittleEndian::read_uint(&data, mem::size_of::<usize>()) as usize
-                }
-                _ => panic!("param sysctl reported to be struct, but isn't"),
-            };
-
-            length
-        }
+        CtlType::Struct => match ctl.value().map_err(JailError::ParameterStructLengthError)? {
+            CtlValue::Struct(data) => {
+                assert!(
+                    data.len() >= mem::size_of::<usize>(),
+                    "Error: struct sysctl returned too few bytes."
+                );
+                LittleEndian::read_uint(&data, mem::size_of::<usize>()) as usize
+            }
+            _ => panic!("param sysctl reported to be struct, but isn't"),
+        },
         _ => return Err(JailError::ParameterTypeUnsupported(paramtype)),
     };
 
@@ -220,9 +208,9 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
     // ip4.addr and ip6.addr are arrays, which can be up to
     // security.jail.jail_max_af_ips long:
     let jail_max_af_ips = match Ctl::new("security.jail.jail_max_af_ips")
-        .map_err(|e| JailError::JailMaxAfIpsFailed(e))?
+        .map_err(JailError::JailMaxAfIpsFailed)?
         .value()
-        .map_err(|e| JailError::JailMaxAfIpsFailed(e))?
+        .map_err(JailError::JailMaxAfIpsFailed)?
     {
         CtlValue::Uint(u) => u as usize,
         _ => panic!("security.jail.jail_max_af_ips has the wrong type."),
@@ -312,11 +300,12 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
                      retrieved is not a multiple of the size of in_addr."
                 );
 
+                #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
                 let ips: Vec<net::Ipv4Addr> = unsafe {
                     slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count)
                 }.iter()
                     .map(|in_addr| u32::from_be(in_addr.s_addr))
-                    .map(|host_u32| net::Ipv4Addr::from(host_u32))
+                    .map(net::Ipv4Addr::from)
                     .filter(|ip| !ip.is_unspecified())
                     .collect();
 
@@ -334,6 +323,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
                      retrieved is not a multiple of the size of in_addr."
                 );
 
+                #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
                 let ips: Vec<net::Ipv6Addr> = unsafe {
                     slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count)
                 }.iter()
@@ -379,6 +369,8 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
     let paramtype: Type = (&value).into();
     assert_eq!(ctltype, paramtype.into());
 
+    // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
+    #[allow(identity_conversion)]
     match value {
         Value::String(s) => {
             bytes = CString::new(s)
@@ -395,13 +387,13 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
         Value::S16(v) => bytes.write_i16::<LittleEndian>(v),
         Value::S32(v) => bytes.write_i32::<LittleEndian>(v),
         Value::S64(v) => bytes.write_i64::<LittleEndian>(v),
-        Value::Int(v) => bytes.write_int::<LittleEndian>(v as i64, mem::size_of::<libc::c_int>()),
-        Value::Long(v) => bytes.write_int::<LittleEndian>(v as i64, mem::size_of::<libc::c_long>()),
+        Value::Int(v) => bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_int>()),
+        Value::Long(v) => bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_long>()),
         Value::Uint(v) => {
-            bytes.write_uint::<LittleEndian>(v as u64, mem::size_of::<libc::c_uint>())
+            bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_uint>())
         }
         Value::Ulong(v) => {
-            bytes.write_uint::<LittleEndian>(v as u64, mem::size_of::<libc::c_ulong>())
+            bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_ulong>())
         }
         Value::Ipv4Addrs(addrs) => {
             for addr in addrs {
