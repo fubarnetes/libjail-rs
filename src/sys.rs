@@ -7,10 +7,7 @@ use std::str;
 
 use std::path;
 
-use sysctl::CtlType;
 use JailError;
-
-use param;
 
 macro_rules! iovec {
     ($value:expr, $size:expr) => {
@@ -104,19 +101,6 @@ pub fn jail_create(
     }
 }
 
-/// Get the name of a jail given the jid
-#[cfg(target_os = "freebsd")]
-pub fn jail_getname(jid: i32) -> Result<String, JailError> {
-    match param::get(jid, "name")? {
-        param::Value::String(s) => Ok(s),
-        unexpected => Err(JailError::UnexpectedParameterType {
-            name: "name".to_string(),
-            expected: CtlType::String,
-            got: unexpected,
-        }),
-    }
-}
-
 /// Get the `jid` of a jail given the name.
 ///
 /// This function attempts to parse the name into an `i32` first, which is
@@ -182,18 +166,6 @@ mod tests {
     fn create_remove() {
         let jid = jail_create(Path::new("/rescue"), Some("testjail_create_remove"), None)
             .expect("could not start jail");
-
-        jail_remove(jid).expect("could not remove jail");
-    }
-
-    #[test]
-    fn name() {
-        let jid = jail_create(Path::new("/rescue"), Some("testjail_getname"), None)
-            .expect("could not start jail");
-
-        let name = jail_getname(jid).expect("could not get name");
-
-        assert_eq!(name, "testjail_getname");
 
         jail_remove(jid).expect("could not remove jail");
     }

@@ -36,6 +36,123 @@ pub enum Type {
     Ipv6Addrs,
 }
 
+impl Type {
+    /// Check if this type is a string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::String.is_string(), true);
+    /// assert_eq!(Type::Int.is_string(), false);
+    /// ```
+    pub fn is_string(&self) -> bool {
+        match self {
+            Type::String => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this type is numeric
+    ///
+    /// # Example
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::Int.is_numeric(), true);
+    /// assert_eq!(Type::String.is_numeric(), false);
+    /// ```
+    pub fn is_numeric(&self) -> bool {
+        match self {
+            Type::U8 => true,
+            Type::U16 => true,
+            Type::U32 => true,
+            Type::U64 => true,
+            Type::S8 => true,
+            Type::S16 => true,
+            Type::S32 => true,
+            Type::S64 => true,
+            Type::Int => true,
+            Type::Long => true,
+            Type::Uint => true,
+            Type::Ulong => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this type is signed
+    ///
+    /// # Example
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::Int.is_signed(), true);
+    /// assert_eq!(Type::Uint.is_signed(), false);
+    ///
+    /// // Non-numeric types return false
+    /// assert_eq!(Type::String.is_signed(), false);
+    /// ```
+    pub fn is_signed(&self) -> bool {
+        match self {
+            Type::S8 => true,
+            Type::S16 => true,
+            Type::S32 => true,
+            Type::S64 => true,
+            Type::Int => true,
+            Type::Long => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this type is an IP address list
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::Ipv4Addrs.is_ip(), true);
+    /// assert_eq!(Type::Ipv6Addrs.is_ip(), true);
+    /// assert_eq!(Type::String.is_ip(), false);
+    /// ```
+    pub fn is_ip(&self) -> bool {
+        match self {
+            Type::Ipv4Addrs => true,
+            Type::Ipv6Addrs => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this type is an IPv4 address list
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::Ipv4Addrs.is_ipv4(), true);
+    /// assert_eq!(Type::Ipv6Addrs.is_ipv4(), false);
+    /// ```
+    pub fn is_ipv4(&self) -> bool {
+        match self {
+            Type::Ipv4Addrs => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this type is an IPv4 address list
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::Ipv6Addrs.is_ipv6(), true);
+    /// assert_eq!(Type::Ipv4Addrs.is_ipv6(), false);
+    /// ```
+    pub fn is_ipv6(&self) -> bool {
+        match self {
+            Type::Ipv6Addrs => true,
+            _ => false,
+        }
+    }
+}
+
 impl<'a> convert::From<&'a Value> for Type {
     fn from(t: &'a Value) -> Type {
         match t {
@@ -146,6 +263,25 @@ pub enum Value {
 }
 
 impl Value {
+    /// Get the type of this value
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::param::{Type, Value};
+    /// assert_eq!(Value::Int(42).get_type(), Type::Int);
+    /// ```
+    ///
+    /// Types allow for convenient checks:
+    ///
+    /// ```
+    /// use jail::param::Value;
+    /// assert!(Value::Int(42).get_type().is_signed());
+    /// ```
+    pub fn get_type(&self) -> Type {
+        self.into()
+    }
+
     /// Attempt to unpack the Vector of IPv4 addresses contained in this value
     ///
     /// # Example
@@ -159,7 +295,7 @@ impl Value {
     /// #     "192.168.0.0".parse().unwrap(),
     /// # ]);
     /// let ips = rfc1918
-    ///     .into_ipv4()
+    ///     .unpack_ipv4()
     ///     .expect("could not unwrap RFC1918 IP Addresses");
     /// assert_eq!(ips[0], net::Ipv4Addr::new(10,0,0,0));
     /// ```
@@ -168,9 +304,9 @@ impl Value {
     /// ```should_panic
     /// use jail::param::Value;
     /// let not_ipv4_addrs = Value::U8(42);
-    /// not_ipv4_addrs.into_ipv4().unwrap();
+    /// not_ipv4_addrs.unpack_ipv4().unwrap();
     /// ```
-    pub fn into_ipv4(self) -> Result<Vec<net::Ipv4Addr>, JailError> {
+    pub fn unpack_ipv4(self) -> Result<Vec<net::Ipv4Addr>, JailError> {
         match self {
             Value::Ipv4Addrs(v) => Ok(v),
             _ => Err(JailError::ParameterUnpackError),
@@ -189,7 +325,7 @@ impl Value {
     /// #     "ff02::1".parse().unwrap(),
     /// # ]);
     /// let ips = all_nodes
-    ///     .into_ipv6()
+    ///     .unpack_ipv6()
     ///     .expect("could not unwrap 'All Nodes' IPv6 Addresses");
     /// assert_eq!(ips[0], net::Ipv6Addr::new(0xff01, 0, 0, 0, 0, 0, 0, 1))
     /// ```
@@ -202,11 +338,107 @@ impl Value {
     /// #     "172.16.0.0".parse().unwrap(),
     /// #     "192.168.0.0".parse().unwrap(),
     /// # ]);
-    /// rfc1918.into_ipv6().unwrap();
+    /// rfc1918.unpack_ipv6().unwrap();
     /// ```
-    pub fn into_ipv6(self) -> Result<Vec<net::Ipv6Addr>, JailError> {
+    pub fn unpack_ipv6(self) -> Result<Vec<net::Ipv6Addr>, JailError> {
         match self {
             Value::Ipv6Addrs(v) => Ok(v),
+            _ => Err(JailError::ParameterUnpackError),
+        }
+    }
+
+    /// Attempt to unpack a String value contained in this parameter Value.
+    ///
+    /// ```
+    /// use jail::param::Value;
+    /// let value = Value::String("foobar".into());
+    /// assert_eq!(
+    ///     value.unpack_string().unwrap(),
+    ///     "foobar".to_string()
+    /// );
+    /// ```
+    ///
+    /// Attempting to unwrap a different value will fail:
+    /// ```should_panic
+    /// use jail::param::Value;
+    /// let not_a_string = Value::U8(42);
+    /// not_a_string.unpack_string().unwrap();
+    /// ```
+    pub fn unpack_string(self) -> Result<String, JailError> {
+        match self {
+            Value::String(v) => Ok(v),
+            _ => Err(JailError::ParameterUnpackError),
+        }
+    }
+
+    /// Attempt to unpack any unsigned integer Value into a 64 bit unsigned
+    /// integer.
+    ///
+    /// Shorter values will be zero-extended as appropriate.
+    ///
+    /// # Example
+    /// ```
+    /// use jail::param::Value;
+    /// assert_eq!(Value::U64(64u64).unpack_u64().unwrap(), 64u64);
+    /// assert_eq!(Value::U32(32u32).unpack_u64().unwrap(), 32u64);
+    /// assert_eq!(Value::U16(16u16).unpack_u64().unwrap(), 16u64);
+    /// assert_eq!(Value::U8(8u8).unpack_u64().unwrap(), 8u64);
+    /// assert_eq!(Value::Uint(1234).unpack_u64().unwrap(), 1234u64);
+    /// assert_eq!(Value::Ulong(42).unpack_u64().unwrap(), 42u64);
+    ///
+    /// // Everything else should fail.
+    /// assert!(Value::String("1234".into()).unpack_u64().is_err());
+    /// assert!(Value::S64(64i64).unpack_u64().is_err());
+    /// ```
+    pub fn unpack_u64(self) -> Result<u64, JailError> {
+        #[allow(identity_conversion)]
+        match self {
+            Value::U64(v) => Ok(v),
+            Value::U32(v) => Ok(v.into()),
+            Value::U16(v) => Ok(v.into()),
+            Value::U8(v) => Ok(v.into()),
+            Value::Uint(v) => Ok(v.into()),
+            Value::Ulong(v) => Ok(v.into()),
+            _ => Err(JailError::ParameterUnpackError),
+        }
+    }
+
+    /// Attempt to unpack any Value containing a signed integer or unsigned
+    /// integer shorter than 64 bits into a 64 bit unsigned integer.
+    ///
+    /// Shorter values will be zero-extended as appropriate.
+    ///
+    /// # Example
+    /// ```
+    /// use jail::param::Value;
+    /// assert_eq!(Value::S64(-64i64).unpack_i64().unwrap(), -64i64);
+    /// assert_eq!(Value::S32(-32i32).unpack_i64().unwrap(), -32i64);
+    /// assert_eq!(Value::S16(-16i16).unpack_i64().unwrap(), -16i64);
+    /// assert_eq!(Value::S8(-8i8).unpack_i64().unwrap(), -8i64);
+    /// assert_eq!(Value::U32(32u32).unpack_i64().unwrap(), 32i64);
+    /// assert_eq!(Value::U16(16u16).unpack_i64().unwrap(), 16i64);
+    /// assert_eq!(Value::U8(8u8).unpack_i64().unwrap(), 8i64);
+    /// assert_eq!(Value::Uint(1234).unpack_i64().unwrap(), 1234i64);
+    /// assert_eq!(Value::Int(-1234).unpack_i64().unwrap(), -1234i64);
+    /// assert_eq!(Value::Long(-42).unpack_i64().unwrap(), -42i64);
+    ///
+    /// // Everything else should fail.
+    /// assert!(Value::String("1234".into()).unpack_i64().is_err());
+    /// assert!(Value::U64(64u64).unpack_i64().is_err());
+    /// ```
+    pub fn unpack_i64(self) -> Result<i64, JailError> {
+        #[allow(identity_conversion)]
+        match self {
+            Value::S64(v) => Ok(v),
+            Value::S32(v) => Ok(v.into()),
+            Value::S16(v) => Ok(v.into()),
+            Value::S8(v) => Ok(v.into()),
+            Value::U32(v) => Ok(v.into()),
+            Value::U16(v) => Ok(v.into()),
+            Value::U8(v) => Ok(v.into()),
+            Value::Uint(v) => Ok(v.into()),
+            Value::Int(v) => Ok(v.into()),
+            Value::Long(v) => Ok(v.into()),
             _ => Err(JailError::ParameterUnpackError),
         }
     }

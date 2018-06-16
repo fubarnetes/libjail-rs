@@ -340,7 +340,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn name(self: &RunningJail) -> Result<String, JailError> {
-        sys::jail_getname(self.jid)
+        self.param("name")?.unpack_string()
     }
 
     /// Get the IP addresses
@@ -365,14 +365,14 @@ impl RunningJail {
         let mut ips: Vec<net::IpAddr> = vec![];
         ips.extend(
             self.param("ip4.addr")?
-                .into_ipv4()?
+                .unpack_ipv4()?
                 .iter()
                 .cloned()
                 .map(net::IpAddr::V4),
         );
         ips.extend(
             self.param("ip6.addr")?
-                .into_ipv6()?
+                .unpack_ipv6()?
                 .iter()
                 .cloned()
                 .map(net::IpAddr::V6),
