@@ -25,6 +25,7 @@ extern crate bitflags;
 extern crate nix;
 
 use std::collections::HashMap;
+use std::convert;
 use std::net;
 use std::path;
 
@@ -127,6 +128,81 @@ pub struct RunningJail {
 pub enum Jail {
     Stopped(StoppedJail),
     Running(RunningJail),
+}
+
+impl convert::From<RunningJail> for Jail {
+    fn from(running: RunningJail) -> Self {
+        Jail::Running(running)
+    }
+}
+
+impl convert::From<StoppedJail> for Jail {
+    fn from(stopped: StoppedJail) -> Self {
+        Jail::Stopped(stopped)
+    }
+}
+
+impl Jail {
+    /// Check if a jail is running
+    pub fn is_started(&self) -> bool {
+        match self {
+            Jail::Running(_) => true,
+            Jail::Stopped(_) => false,
+        }
+    }
+
+    /// Start the Jail
+    ///
+    /// This calls start() on a stopped Jail, and is a no-op for an already
+    /// running Jail.
+    pub fn start(self) -> Result<Self, JailError> {
+        match self {
+            Jail::Running(r) => Ok(Jail::Running(r)),
+            Jail::Stopped(s) => Ok(Jail::Running(s.start()?)),
+        }
+    }
+
+    /// Get the name of the Jail
+    pub fn name(&self) -> Result<String, JailError> {
+        match self {
+            Jail::Running(r) => r.name(),
+            Jail::Stopped(s) => s
+                .name
+                .clone()
+                .ok_or_else(|| JailError::NoSuchParameter("name".into())),
+        }
+    }
+
+    /// Get the hostname of the Jail
+    pub fn hostname(&self) -> Result<String, JailError> {
+        match self {
+            Jail::Running(r) => r.hostname(),
+            Jail::Stopped(s) => s
+                .hostname
+                .clone()
+                .ok_or_else(|| JailError::NoSuchParameter("hostname".into())),
+        }
+    }
+
+    /// Get the IP Addresses of a jail
+    pub fn ips(&self) -> Result<Vec<net::IpAddr>, JailError> {
+        match self {
+            Jail::Running(r) => r.ips(),
+            Jail::Stopped(s) => Ok(s.ips.clone()),
+        }
+    }
+
+    /// Get a jail parameter
+    pub fn param(&self, name: &str) -> Result<param::Value, JailError> {
+        match self {
+            Jail::Running(r) => r.param(name),
+            Jail::Stopped(s) => s
+                .params
+                .get(name)
+                .ok_or_else(|| JailError::NoSuchParameter(name.into()))
+                .map(|x| x.clone()),
+        }
+    }
 }
 
 #[cfg(target_os = "freebsd")]
