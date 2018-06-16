@@ -1,3 +1,5 @@
+//! Module for inspection and manipulation of jail parameters
+
 use libc;
 
 use std::convert;
@@ -114,11 +116,60 @@ pub enum Value {
     S16(i16),
     S32(i32),
     U32(u32),
+
+    /// Represent a list of IPv4 addresses.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use jail::param::Value;
+    /// let rfc1918 = Value::Ipv4Addrs(vec![
+    ///     "10.0.0.0".parse().unwrap(),
+    ///     "172.16.0.0".parse().unwrap(),
+    ///     "192.168.0.0".parse().unwrap(),
+    /// ]);
+    /// ```
     Ipv4Addrs(Vec<net::Ipv4Addr>),
+
+    /// Represent a list of IPv6 addresses.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use jail::param::Value;
+    /// let all_nodes = Value::Ipv6Addrs(vec![
+    ///     "ff01::1".parse().unwrap(),
+    ///     "ff02::1".parse().unwrap(),
+    /// ]);
+    /// ```
     Ipv6Addrs(Vec<net::Ipv6Addr>),
 }
 
 impl Value {
+    /// Attempt to unpack the Vector of IPv4 addresses contained in this value
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use jail::param::Value;
+    /// use std::net;
+    /// # let rfc1918 = Value::Ipv4Addrs(vec![
+    /// #     "10.0.0.0".parse().unwrap(),
+    /// #     "172.16.0.0".parse().unwrap(),
+    /// #     "192.168.0.0".parse().unwrap(),
+    /// # ]);
+    /// let ips = rfc1918
+    ///     .into_ipv4()
+    ///     .expect("could not unwrap RFC1918 IP Addresses");
+    /// assert_eq!(ips[0], net::Ipv4Addr::new(10,0,0,0));
+    /// ```
+    ///
+    /// Attempting to unwrap a different value will fail:
+    /// ```should_panic
+    /// use jail::param::Value;
+    /// let not_ipv4_addrs = Value::U8(42);
+    /// not_ipv4_addrs.into_ipv4().unwrap();
+    /// ```
     pub fn into_ipv4(self) -> Result<Vec<net::Ipv4Addr>, JailError> {
         match self {
             Value::Ipv4Addrs(v) => Ok(v),
@@ -126,6 +177,33 @@ impl Value {
         }
     }
 
+    /// Attempt to unpack the Vector of IPv4 addresses contained in this value
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use jail::param::Value;
+    /// use std::net;
+    /// # let all_nodes = Value::Ipv6Addrs(vec![
+    /// #     "ff01::1".parse().unwrap(),
+    /// #     "ff02::1".parse().unwrap(),
+    /// # ]);
+    /// let ips = all_nodes
+    ///     .into_ipv6()
+    ///     .expect("could not unwrap 'All Nodes' IPv6 Addresses");
+    /// assert_eq!(ips[0], net::Ipv6Addr::new(0xff01, 0, 0, 0, 0, 0, 0, 1))
+    /// ```
+    ///
+    /// Attempting to unwrap a different value will fail:
+    /// ```should_panic
+    /// use jail::param::Value;
+    /// # let rfc1918 = Value::Ipv4Addrs(vec![
+    /// #     "10.0.0.0".parse().unwrap(),
+    /// #     "172.16.0.0".parse().unwrap(),
+    /// #     "192.168.0.0".parse().unwrap(),
+    /// # ]);
+    /// rfc1918.into_ipv6().unwrap();
+    /// ```
     pub fn into_ipv6(self) -> Result<Vec<net::Ipv6Addr>, JailError> {
         match self {
             Value::Ipv6Addrs(v) => Ok(v),

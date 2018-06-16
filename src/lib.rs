@@ -1,4 +1,4 @@
-//! This is the jail crate.
+//! A rust library for FreeBSD jails.
 //!
 //! it aims to provide the features exposed by the FreeBSD Jail Library
 //! [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable)
@@ -28,6 +28,9 @@ use std::collections::HashMap;
 use std::net;
 use std::path;
 
+/// An enum for error types of the Jail.
+///
+/// Implements the `Fail` trait of the `failure` crate.
 #[derive(Fail, Debug)]
 pub enum JailError {
     #[fail(display = "An IO Error occurred: {:?}", _0)]
@@ -91,16 +94,27 @@ impl JailError {
     }
 }
 
+/// Represent a stopped jail including all information required to start it
 #[derive(Clone, PartialEq, Eq, Debug)]
 #[cfg(target_os = "freebsd")]
 pub struct StoppedJail {
+    /// The path of root file system of the jail
     pub path: Option<path::PathBuf>,
+
+    /// The jail name
     pub name: Option<String>,
+
+    /// The jail hostname
     pub hostname: Option<String>,
+
+    /// A hashmap of jail parameters and their values
     pub params: HashMap<String, param::Value>,
+
+    /// A list of IP (v4 and v6) addresses to be assigned to this jail
     pub ips: Vec<std::net::IpAddr>,
 }
 
+/// Represents a running jail.
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 #[cfg(target_os = "freebsd")]
 pub struct RunningJail {
@@ -108,8 +122,9 @@ pub struct RunningJail {
     pub jid: i32,
 }
 
+/// Represents a running or stopped jail.
 #[cfg(target_os = "freebsd")]
-pub enum JailState {
+pub enum Jail {
     Stopped(StoppedJail),
     Running(RunningJail),
 }
@@ -127,7 +142,6 @@ impl Default for StoppedJail {
     }
 }
 
-/// Represent a stopped jail including all information required to start it
 #[cfg(target_os = "freebsd")]
 impl StoppedJail {
     /// Create a new Jail instance given a path.

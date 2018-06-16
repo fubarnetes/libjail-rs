@@ -1,3 +1,5 @@
+//! Jail-Specific extensions to the `std::process` module
+
 use libc;
 
 use std::process;
