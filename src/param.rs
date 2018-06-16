@@ -3,12 +3,16 @@ use libc;
 use std::convert;
 use std::ffi::{CStr, CString};
 use std::mem;
+use std::net;
+use std::slice;
 
 use sys::JailFlags;
 use JailError;
 
-use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
+use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
 use sysctl::{Ctl, CtlType, CtlValue};
+
+use nix;
 
 /// An enum representing the type of a parameter.
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
@@ -26,6 +30,8 @@ pub enum Type {
     Long,
     Uint,
     Ulong,
+    Ipv4Addrs,
+    Ipv6Addrs,
 }
 
 impl<'a> convert::From<&'a Value> for Type {
@@ -44,6 +50,8 @@ impl<'a> convert::From<&'a Value> for Type {
             Value::S16(_) => Type::S16,
             Value::S32(_) => Type::S32,
             Value::U32(_) => Type::U32,
+            Value::Ipv4Addrs(_) => Type::Ipv4Addrs,
+            Value::Ipv6Addrs(_) => Type::Ipv6Addrs,
         }
     }
 }
@@ -84,6 +92,8 @@ impl convert::Into<CtlType> for Type {
             Type::Long => CtlType::Long,
             Type::Uint => CtlType::Uint,
             Type::Ulong => CtlType::Ulong,
+            Type::Ipv4Addrs => CtlType::Struct,
+            Type::Ipv6Addrs => CtlType::Struct,
         }
     }
 }
@@ -104,6 +114,24 @@ pub enum Value {
     S16(i16),
     S32(i32),
     U32(u32),
+    Ipv4Addrs(Vec<net::Ipv4Addr>),
+    Ipv6Addrs(Vec<net::Ipv6Addr>),
+}
+
+impl Value {
+    pub fn into_ipv4(self) -> Result<Vec<net::Ipv4Addr>, JailError> {
+        match self {
+            Value::Ipv4Addrs(v) => Ok(v),
+            _ => Err(JailError::ParameterUnpackError),
+        }
+    }
+
+    pub fn into_ipv6(self) -> Result<Vec<net::Ipv6Addr>, JailError> {
+        match self {
+            Value::Ipv6Addrs(v) => Ok(v),
+            _ => Err(JailError::ParameterUnpackError),
+        }
+    }
 }
 
 #[cfg(target_os = "freebsd")]
@@ -144,6 +172,23 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
         CtlType::S16 => mem::size_of::<i16>(),
         CtlType::S32 => mem::size_of::<i32>(),
         CtlType::U32 => mem::size_of::<u32>(),
+        CtlType::Struct => {
+            let length = match ctl
+                .value()
+                .map_err(|e| JailError::ParameterStructLengthError(e))?
+            {
+                CtlValue::Struct(data) => {
+                    assert!(
+                        data.len() >= mem::size_of::<usize>(),
+                        "Error: struct sysctl returned too few bytes."
+                    );
+                    LittleEndian::read_uint(&data, mem::size_of::<usize>()) as usize
+                }
+                _ => panic!("param sysctl reported to be struct, but isn't"),
+            };
+
+            length
+        }
         _ => return Err(JailError::ParameterTypeUnsupported(paramtype)),
     };
 
@@ -172,16 +217,33 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
 pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
     let (paramtype, typesize) = info(name)?;
 
+    // ip4.addr and ip6.addr are arrays, which can be up to
+    // security.jail.jail_max_af_ips long:
+    let jail_max_af_ips = match Ctl::new("security.jail.jail_max_af_ips")
+        .map_err(|e| JailError::JailMaxAfIpsFailed(e))?
+        .value()
+        .map_err(|e| JailError::JailMaxAfIpsFailed(e))?
+    {
+        CtlValue::Uint(u) => u as usize,
+        _ => panic!("security.jail.jail_max_af_ips has the wrong type."),
+    };
+
+    let valuesize = match name {
+        "ip4.addr" => typesize * jail_max_af_ips,
+        "ip6.addr" => typesize * jail_max_af_ips,
+        _ => typesize,
+    };
+
     let paramname = CString::new(name).expect("Could not convert parameter name to CString");
 
-    let mut value: Vec<u8> = vec![0; typesize];
+    let mut value: Vec<u8> = vec![0; valuesize];
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
     let mut jiov: Vec<libc::iovec> = vec![
         iovec!(b"jid\0"),
         iovec!(&jid as *const _, mem::size_of::<i32>()),
         iovec!(paramname.as_ptr(), paramname.as_bytes().len() + 1),
-        iovec!(value.as_mut_ptr(), typesize),
+        iovec!(value.as_mut_ptr(), valuesize),
         iovec!(b"errmsg\0"),
         iovec!(errmsg.as_mut_ptr(), errmsg.len()),
     ];
@@ -236,7 +298,54 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
                 .to_string_lossy()
                 .into_owned()
         })),
-        _ => return Err(JailError::ParameterTypeUnsupported(paramtype)),
+        CtlType::Struct => match name {
+            // FIXME: The following is just placeholder code.
+            "ip4.addr" => {
+                // Make sure we got the right data size
+                let addrsize = mem::size_of::<libc::in_addr>();
+                let count = valuesize / addrsize;
+
+                assert_eq!(
+                    0,
+                    typesize % addrsize,
+                    "Error: memory size mismatch. Length of data \
+                     retrieved is not a multiple of the size of in_addr."
+                );
+
+                let ips: Vec<net::Ipv4Addr> = unsafe {
+                    slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count)
+                }.iter()
+                    .map(|in_addr| u32::from_be(in_addr.s_addr))
+                    .map(|host_u32| net::Ipv4Addr::from(host_u32))
+                    .filter(|ip| !ip.is_unspecified())
+                    .collect();
+
+                Ok(Value::Ipv4Addrs(ips))
+            }
+            "ip6.addr" => {
+                // Make sure we got the right data size
+                let addrsize = mem::size_of::<libc::in6_addr>();
+                let count = valuesize / addrsize;
+
+                assert_eq!(
+                    0,
+                    typesize % addrsize,
+                    "Error: memory size mismatch. Length of data \
+                     retrieved is not a multiple of the size of in_addr."
+                );
+
+                let ips: Vec<net::Ipv6Addr> = unsafe {
+                    slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count)
+                }.iter()
+                    .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
+                    .filter(|ip| !ip.is_unspecified())
+                    .collect();
+
+                Ok(Value::Ipv6Addrs(ips))
+            }
+            _ => Err(JailError::ParameterTypeUnsupported(paramtype)),
+        },
+        _ => Err(JailError::ParameterTypeUnsupported(paramtype)),
     }
 }
 
@@ -293,6 +402,22 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
         }
         Value::Ulong(v) => {
             bytes.write_uint::<LittleEndian>(v as u64, mem::size_of::<libc::c_ulong>())
+        }
+        Value::Ipv4Addrs(addrs) => {
+            for addr in addrs {
+                let s_addr = nix::sys::socket::Ipv4Addr::from_std(&addr).0.s_addr;
+                let host_u32 = u32::from_be(s_addr);
+                bytes
+                    .write_u32::<NetworkEndian>(host_u32)
+                    .map_err(|_| JailError::SerializeFailed)?;
+            }
+            Ok(())
+        }
+        Value::Ipv6Addrs(addrs) => {
+            for addr in addrs {
+                bytes.extend_from_slice(&addr.octets());
+            }
+            Ok(())
         }
     }.map_err(|_| JailError::SerializeFailed)?;
 

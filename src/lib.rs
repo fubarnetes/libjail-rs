@@ -22,7 +22,10 @@ pub mod param;
 #[macro_use]
 extern crate bitflags;
 
+extern crate nix;
+
 use std::collections::HashMap;
+use std::net;
 use std::path;
 
 #[derive(Fail, Debug)]
@@ -51,6 +54,12 @@ pub enum JailError {
     #[fail(display = "Could not get string parameter length: {:?}", _0)]
     ParameterStringLengthError(#[cause] sysctl::SysctlError),
 
+    #[fail(display = "Could not get structure parameter length: {:?}", _0)]
+    ParameterStructLengthError(#[cause] sysctl::SysctlError),
+
+    #[fail(display = "Could not determine maximum number of IP addresses per family")]
+    JailMaxAfIpsFailed(#[cause] sysctl::SysctlError),
+
     #[fail(display = "Parameter string length returned ('{}') is not a number.", _0)]
     ParameterLengthNaN(String),
 
@@ -69,6 +78,9 @@ pub enum JailError {
         got: param::Value,
     },
 
+    #[fail(display = "Failed to unpack parameter.")]
+    ParameterUnpackError,
+
     #[fail(display = "Could not serialize value to bytes")]
     SerializeFailed,
 }
@@ -86,6 +98,7 @@ pub struct StoppedJail {
     pub name: Option<String>,
     pub hostname: Option<String>,
     pub params: HashMap<String, param::Value>,
+    pub ips: Vec<std::net::IpAddr>,
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
@@ -109,6 +122,7 @@ impl Default for StoppedJail {
             name: None,
             hostname: None,
             params: HashMap::new(),
+            ips: vec![],
         }
     }
 }
@@ -158,6 +172,33 @@ impl StoppedJail {
             self.hostname.as_ref().map(String::as_str),
         ).map(|jid| RunningJail::from_jid(jid))?;
 
+        // Set the IP Addresses
+        let ip4s = param::Value::Ipv4Addrs(
+            self.ips
+                .iter()
+                .filter(|ip| ip.is_ipv4())
+                .map(|ip| match ip {
+                    std::net::IpAddr::V4(ip4) => ip4.clone(),
+                    _ => panic!("unreachable"),
+                })
+                .collect(),
+        );
+
+        let ip6s = param::Value::Ipv6Addrs(
+            self.ips
+                .iter()
+                .filter(|ip| ip.is_ipv6())
+                .map(|ip| match ip {
+                    std::net::IpAddr::V6(ip6) => ip6.clone(),
+                    _ => panic!("unreachable"),
+                })
+                .collect(),
+        );
+
+        param::set(ret.jid, "ip4.addr", ip4s)?;
+        param::set(ret.jid, "ip6.addr", ip6s)?;
+
+        // Set remaining parameters
         for (param, value) in self.params {
             param::set(ret.jid, &param, value)?;
         }
@@ -196,6 +237,23 @@ impl StoppedJail {
     /// ```
     pub fn param<S: Into<String>>(mut self: Self, param: S, value: param::Value) -> Self {
         self.params.insert(param.into(), value);
+        self
+    }
+
+    /// Add an IP Address
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use jail::StoppedJail;
+    /// # use std::net::IpAddr;
+    /// #
+    /// let mut stopped = StoppedJail::new("rescue")
+    ///     .ip("127.0.1.1".parse().expect("could not parse 127.0.1.1"))
+    ///     .ip("fe80::2".parse().expect("could not parse ::1"));
+    /// ```
+    pub fn ip(mut self: Self, ip: std::net::IpAddr) -> Self {
+        self.ips.push(ip);
         self
     }
 }
@@ -266,6 +324,43 @@ impl RunningJail {
     /// ```
     pub fn name(self: &RunningJail) -> Result<String, JailError> {
         sys::jail_getname(self.jid)
+    }
+
+    /// Get the IP addresses
+    ///
+    /// # Examples
+    /// ```
+    /// # use jail::StoppedJail;
+    /// # use std::net::IpAddr;
+    /// # let mut running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_ip")
+    /// #     .ip("127.0.1.2".parse().unwrap())
+    /// #     .ip("fe80::2".parse().unwrap())
+    /// #     .start()
+    /// #     .expect("Could not start jail");
+    /// let ips = running.ips()
+    ///     .expect("could not get ip addresses");
+    /// assert_eq!(ips[0], "127.0.1.2".parse::<IpAddr>().unwrap());
+    /// assert_eq!(ips[1], "fe80::2".parse::<IpAddr>().unwrap());
+    /// # running.kill();
+    /// ```
+    pub fn ips(self: &RunningJail) -> Result<Vec<net::IpAddr>, JailError> {
+        let mut ips: Vec<net::IpAddr> = vec![];
+        ips.extend(
+            self.param("ip4.addr")?
+                .into_ipv4()?
+                .iter()
+                .cloned()
+                .map(net::IpAddr::V4),
+        );
+        ips.extend(
+            self.param("ip6.addr")?
+                .into_ipv6()?
+                .iter()
+                .cloned()
+                .map(net::IpAddr::V6),
+        );
+        Ok(ips)
     }
 
     /// Return a jail parameter.
