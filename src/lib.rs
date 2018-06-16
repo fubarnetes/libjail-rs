@@ -15,7 +15,7 @@ extern crate sysctl;
 pub mod process;
 
 #[macro_use]
-pub mod sys;
+mod sys;
 
 pub mod param;
 
@@ -268,11 +268,14 @@ impl RunningJail {
     /// # Examples
     ///
     /// ```
-    /// # use std::path::Path;
-    /// # use jail::RunningJail;
-    /// # use jail::sys::{jail_create, jail_remove};
+    /// use jail::RunningJail;
+    /// # use jail::StoppedJail;
+    /// # let jail = StoppedJail::new("/rescue")
+    /// #     .name("testjail_from_jid")
+    /// #     .start()
+    /// #     .expect("could not start jail");
+    /// # let jid = jail.jid;
     ///
-    /// # let jid = jail_create(Path::new("/rescue"), Some("testjail_from_jid"), None).unwrap();
     /// let running = RunningJail::from_jid(jid);
     /// # running.kill();
     /// ```
@@ -288,13 +291,13 @@ impl RunningJail {
     /// # Examples
     ///
     /// ```
-    /// # use std::path::Path;
-    /// # use jail::RunningJail;
-    /// # use jail::sys::{jail_create, jail_remove};
-    /// #
-    /// # let jid = jail_create(Path::new("/rescue"), Some("testjail_from_name"), None)
-    /// #     .expect("could not start testjail");
-    /// #
+    /// use jail::RunningJail;
+    /// # use jail::StoppedJail;
+    /// # let jail = StoppedJail::new("/rescue")
+    /// #     .name("testjail_from_name")
+    /// #     .start()
+    /// #     .expect("could not start jail");
+    ///
     /// let running = RunningJail::from_name("testjail_from_name")
     ///     .expect("Could not get testjail");
     /// #

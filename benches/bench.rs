@@ -57,7 +57,7 @@ fn start_echo_helloworld_stop(b: &mut Bencher) {
 
         Command::new("/echo")
             .arg("hello world")
-            .jail(&running.jid)
+            .jail(&running)
             .output()
             .unwrap();
 
@@ -71,7 +71,7 @@ fn echo_helloworld_jailed(b: &mut Bencher) {
     b.iter(|| {
         Command::new("/echo")
             .arg("hello world")
-            .jail(&running.jid)
+            .jail(&running)
             .output()
             .unwrap();
     });

@@ -31,7 +31,7 @@ fn main() {
 
     println!("Let's run a command in the jail!");
     let output = Command::new("/hostname")
-        .jail(&running.jid)
+        .jail(&running)
         .output()
         .expect("Failed to execute command in jail");
 

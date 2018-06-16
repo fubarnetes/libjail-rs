@@ -187,19 +187,20 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
 ///
 /// # Examples
 /// ```
-/// # extern crate jail;
-/// # use jail::param;
-/// # use std::path::Path;
-/// #
-/// # let jid = jail::sys::jail_create(Path::new("/rescue"), Some("testjail_param"), None)
+/// use jail::param;
+/// # use jail::StoppedJail;
+/// # let jail = StoppedJail::new("/rescue")
+/// #     .name("testjail_getparam")
+/// #     .start()
 /// #     .expect("could not start jail");
-/// #
-/// let hostuuid = jail::param::get(jid, "host.hostuuid")
+/// # let jid = jail.jid;
+///
+/// let hostuuid = param::get(jid, "host.hostuuid")
 ///     .expect("could not get parameter");
 ///
 /// println!("{:?}", hostuuid);
 /// #
-/// # jail::sys::jail_remove(jid);
+/// # jail.kill().expect("could not stop jail");
 /// ```
 #[cfg(target_os = "freebsd")]
 pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
@@ -343,20 +344,21 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
 ///
 /// # Examples
 /// ```
-/// # extern crate jail;
-/// # use jail::param;
-/// # use std::path::Path;
-/// #
-/// # let jid = jail::sys::jail_create(Path::new("/rescue"), Some("testjail_setparam"), None)
+/// use jail::param;
+/// # use jail::StoppedJail;
+/// # let jail = StoppedJail::new("/rescue")
+/// #     .name("testjail_getparam")
+/// #     .start()
 /// #     .expect("could not start jail");
-/// #
+/// # let jid = jail.jid;
+///
 /// param::set(jid, "allow.raw_sockets", param::Value::Int(1))
 ///     .expect("could not set parameter");
 /// #
 /// # let readback = param::get(jid, "allow.raw_sockets")
 /// #     .expect("could not read back value");
 /// # assert_eq!(readback, param::Value::Int(1));
-/// # jail::sys::jail_remove(jid);
+/// # jail.kill().expect("could not stop jail");
 /// ```
 pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
     let (ctltype, _) = info(name)?;

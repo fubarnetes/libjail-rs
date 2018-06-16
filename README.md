@@ -37,7 +37,7 @@ fn main() {
     let running = stopped.start().expect("Couldn't start Jail");
 
     let output = Command::new("hostname")
-        .jail(running.jid)
+        .jail(&running)
         .output()
         .expect("Failed to execute command");
 
