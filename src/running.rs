@@ -3,6 +3,7 @@ use sys;
 use JailError;
 
 use std::net;
+use std::path;
 
 /// Represents a running jail.
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
@@ -63,9 +64,6 @@ impl RunningJail {
 
     /// Return the jail's `name`.
     ///
-    /// The name will be internall resolved using
-    /// [jail_getname](fn.jail_getname.html).
-    ///
     /// # Examples
     ///
     /// ```
@@ -81,6 +79,29 @@ impl RunningJail {
     /// ```
     pub fn name(self: &RunningJail) -> Result<String, JailError> {
         self.param("name")?.unpack_string()
+    }
+
+    /// Return the jail's `path`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use jail::StoppedJail;
+    /// # use std::path::PathBuf;
+    /// #
+    /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_path")
+    /// #     .start()
+    /// #     .expect("Could not start jail");
+    /// let path = running.path()
+    ///     .expect("Could not get path");
+    /// # let expected : PathBuf = "/rescue".into();
+    /// # assert_eq!(path, expected);
+    /// #
+    /// # running.kill();
+    /// ```
+    pub fn path(self: &RunningJail) -> Result<path::PathBuf, JailError> {
+        Ok(self.param("path")?.unpack_string()?.into())
     }
 
     /// Return the jail's `name`.

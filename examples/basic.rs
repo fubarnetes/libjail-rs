@@ -20,6 +20,11 @@ fn main() {
     println!("created new jail with JID {}", running.jid);
 
     println!(
+        "the jail's path is {:?}",
+        running.path().expect("could not get path")
+    );
+
+    println!(
         "the jail's jailname is '{}'",
         running.name().expect("could not get name")
     );

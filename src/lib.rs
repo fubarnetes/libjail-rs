@@ -22,6 +22,7 @@ extern crate nix;
 
 use std::convert;
 use std::net;
+use std::path;
 
 mod error;
 pub use error::JailError;
@@ -82,6 +83,17 @@ impl Jail {
                 .name
                 .clone()
                 .ok_or_else(|| JailError::NoSuchParameter("name".into())),
+        }
+    }
+
+    /// Get the name of the Jail
+    pub fn path(&self) -> Result<path::PathBuf, JailError> {
+        match self {
+            Jail::Running(r) => r.path(),
+            Jail::Stopped(s) => s
+                .path
+                .clone()
+                .ok_or_else(|| JailError::NoSuchParameter("path".into())),
         }
     }
 
