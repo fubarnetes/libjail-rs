@@ -1,9 +1,15 @@
 # libjail-rs
 
-[![Crates.io](https://img.shields.io/crates/v/jail.svg)](https://crates.io/crates/jail)
-[![Travis](https://img.shields.io/travis/fubarnetes/libjail-rs.svg)](https://travis-ci.org/fubarnetes/libjail-rs)
-[![Docs: x86_64-unknown-freebsd](https://img.shields.io/badge/docs-x86__64--unknown--freebsd-blue.svg)](https://fubarnetes.github.io/libjail-rs/x86_64-unknown-freebsd/jail/index.html)
-[![Docs: i686-unknown-freebsd](https://img.shields.io/badge/docs-i686--unknown--freebsd-blue.svg)](https://fubarnetes.github.io/libjail-rs/i686-unknown-freebsd/jail/index.html)
+[![Crates.io](https://img.shields.io/crates/v/jail.svg?style=flat-square)](https://crates.io/crates/jail)
+[![GitHub last commit](https://img.shields.io/github/last-commit/fubarnetes/libjail-rs.svg?style=flat-square)](https://github.com/fubarnetes/libjail-rs/commits/master)
+[![Gitter](https://img.shields.io/gitter/room/fubarnetes/libjail-rs.js.svg?style=flat-square)](https://gitter.im/fubarnetes/libjail-rs)
+[![Libraries.io for
+releases](https://img.shields.io/librariesio/release/cargo/jail.svg?style=flat-square)](https://libraries.io/cargo/jail/)
+[![Crates.io](https://img.shields.io/crates/d/jail.svg?style=flat-square)](https://crates.io/crates/jail)
+[![Crates.io](https://img.shields.io/crates/l/jail.svg?style=flat-square)](https://crates.io/crates/jail)
+[![Travis](https://img.shields.io/travis/fubarnetes/libjail-rs/master.svg?style=flat-square)](https://travis-ci.org/fubarnetes/libjail-rs)
+[![Docs: x86_64-unknown-freebsd](https://img.shields.io/badge/docs-x86__64--unknown--freebsd-blue.svg?style=flat-square)](https://fubarnetes.github.io/libjail-rs/x86_64-unknown-freebsd/jail/index.html)
+[![Docs: i686-unknown-freebsd](https://img.shields.io/badge/docs-i686--unknown--freebsd-blue.svg?style=flat-square)](https://fubarnetes.github.io/libjail-rs/i686-unknown-freebsd/jail/index.html)
 
 libjail-rs aims to be a rust implementation of the FreeBSD [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable) library. While feature parity is a goal, a one-to-one implementation of all functions in [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable) is not.
 
