@@ -105,3 +105,10 @@ fn get_params(b: &mut Bencher) {
     b.iter(|| running.params().unwrap());
     running.kill().unwrap();
 }
+
+#[bench]
+fn save(b: &mut Bencher) {
+    let running = StoppedJail::new("/rescue").start().unwrap();
+    b.iter(|| running.save().unwrap());
+    running.kill().unwrap();
+}

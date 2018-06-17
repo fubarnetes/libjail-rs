@@ -76,6 +76,17 @@ impl Jail {
         }
     }
 
+    /// Stop the jail
+    ///
+    /// This calls stop() on a started Jail, and is a no-op for an already
+    /// stopped Jail.
+    pub fn stop(self) -> Result<Self, JailError> {
+        match self {
+            Jail::Running(r) => Ok(Jail::Stopped(r.stop()?)),
+            Jail::Stopped(s) => Ok(Jail::Stopped(s)),
+        }
+    }
+
     /// Get the name of the Jail
     pub fn name(&self) -> Result<String, JailError> {
         match self {

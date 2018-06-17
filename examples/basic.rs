@@ -44,5 +44,9 @@ fn main() {
 
     println!("output: {}", String::from_utf8_lossy(&output.stdout));
 
+    println!("jid before restart: {}", running.jid);
+    let running = running.restart().unwrap();
+    println!("jid after restart: {}", running.jid);
+
     running.kill().expect("Failed to stop Jail");
 }

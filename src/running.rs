@@ -1,6 +1,7 @@
 use param;
 use sys;
 use JailError;
+use StoppedJail;
 
 use std::collections::HashMap;
 use std::net;
@@ -243,5 +244,89 @@ impl RunningJail {
     /// ```
     pub fn kill(self: RunningJail) -> Result<(), JailError> {
         sys::jail_remove(self.jid).and_then(|_| Ok(()))
+    }
+
+    /// Create a StoppedJail from a RunningJail, while not consuming the
+    /// RunningJail.
+    ///
+    /// This can be used to clone the config from a RunningJail.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use jail::StoppedJail;
+    /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_save")
+    /// #     .hostname("testjail_save.example.com")
+    /// #     .start()
+    /// #     .unwrap();
+    /// let stopped = running
+    ///     .save()
+    ///     .expect("could not save jail configuration");
+    ///
+    /// assert_eq!(stopped.name, Some("testjail_save".into()));
+    /// assert_eq!(stopped.hostname, Some("testjail_save.example.com".into()));
+    /// # running.kill().unwrap();
+    /// ```
+    pub fn save(self: &RunningJail) -> Result<StoppedJail, JailError> {
+        let mut stopped = StoppedJail::new(self.path()?);
+
+        stopped.name = self.name().ok();
+        stopped.hostname = self.hostname().ok();
+        stopped.ips = self.ips()?;
+        stopped.params = self.params()?;
+
+        Ok(stopped)
+    }
+
+    /// Stop a jail, keeping its configuration in a StoppedJail.
+    ///
+    /// This is a wrapper around `save` and `kill`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use jail::StoppedJail;
+    /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_stop")
+    /// #     .hostname("testjail_stop.example.com")
+    /// #     .start()
+    /// #     .unwrap();
+    /// let stopped = running
+    ///     .stop()
+    ///     .expect("failed to stop jail");
+    ///
+    /// //assert_eq!(stopped.name, Some("testjail_save".into()));
+    /// //assert_eq!(stopped.hostname, Some("testjail_save.example.com".into()));
+    /// ```
+    pub fn stop(self: RunningJail) -> Result<StoppedJail, JailError> {
+        let stopped = self.save()?;
+        self.kill()?;
+
+        Ok(stopped)
+    }
+
+    /// Restart a jail by stopping it and starting it again
+    ///
+    /// This is a wrapper around `RunningJail::stop` and `StoppedJail::start`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use jail::StoppedJail;
+    /// # let running = StoppedJail::new("/rescue")
+    /// #     .start()
+    /// #     .unwrap();
+    ///
+    /// let old_jid = running.jid;
+    /// let running = running.restart()
+    ///     .expect("failed to restart jail");
+    /// assert!(running.jid != old_jid);
+    ///
+    /// # running.kill();
+    /// ```
+    pub fn restart(self: RunningJail) -> Result<RunningJail, JailError> {
+        let stopped = self.stop()?;
+        stopped.start()
     }
 }
