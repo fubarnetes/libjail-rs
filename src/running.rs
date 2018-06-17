@@ -2,6 +2,7 @@ use param;
 use sys;
 use JailError;
 
+use std::collections::HashMap;
 use std::net;
 use std::path;
 
@@ -180,6 +181,31 @@ impl RunningJail {
     /// ```
     pub fn param(self: &Self, name: &str) -> Result<param::Value, JailError> {
         param::get(self.jid, name)
+    }
+
+    /// Return a HashMap of all jail parameters.
+    ///
+    /// # Examples
+    /// ```
+    /// use jail::param;
+    /// # use jail::StoppedJail;
+    /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_params")
+    /// #     .param("allow.raw_sockets", param::Value::Int(1))
+    /// #     .start()
+    /// #     .expect("could not start jail");
+    ///
+    /// let params = running.params()
+    ///     .expect("could not get all parameters");
+    ///
+    /// assert_eq!(
+    ///     params.get("allow.raw_sockets"),
+    ///     Some(&param::Value::Int(1))
+    /// );
+    /// # running.kill().expect("could not stop jail");
+    /// ```
+    pub fn params(self: &Self) -> Result<HashMap<String, param::Value>, JailError> {
+        param::get_all(self.jid)
     }
 
     /// Set a jail parameter.

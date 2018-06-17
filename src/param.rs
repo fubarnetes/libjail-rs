@@ -2,8 +2,10 @@
 
 use libc;
 
+use std::collections::HashMap;
 use std::convert;
 use std::ffi::{CStr, CString};
+use std::iter::FromIterator;
 use std::mem;
 use std::net;
 use std::slice;
@@ -753,4 +755,65 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
         },
         _ => Ok(()),
     }
+}
+
+/// Set a jail parameter given the jid, the parameter name and the value.
+///
+/// # Examples
+/// ```
+/// use jail::param;
+/// # use jail::StoppedJail;
+/// # let jail = StoppedJail::new("/rescue")
+/// #     .name("testjail_get_all_params")
+/// #     .param("allow.raw_sockets", param::Value::Int(1))
+/// #     .start()
+/// #     .expect("could not start jail");
+/// # let jid = jail.jid;
+///
+/// let params = param::get_all(jid)
+///     .expect("could not get all parameters");
+///
+/// assert_eq!(params.get("allow.raw_sockets"), Some(&param::Value::Int(1)));
+/// # jail.kill().expect("could not stop jail");
+/// ```
+pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
+    let params = Ctl::new("security.jail.param")
+        .map_err(JailError::SysctlError)?
+        .into_iter()
+        .filter_map(Result::ok)
+        // Get name
+        .map(|ctl| ctl.name())
+        .filter_map(Result::ok)
+        // Remove leading "security.jail.param"
+        .filter(|name| name.starts_with("security.jail.param"))
+        .map(|string| string["security.jail.param.".len()..].to_string())
+        // Remove elements with a trailing dot (nodes)
+        .filter(|name| !name.ends_with('.'))
+        // The following parameters are dynamic
+        .filter(|name| name != "jid")
+        .filter(|name| name != "dying")
+        .filter(|name| name != "parent")
+        .filter(|name| name != "children.cur")
+        .filter(|name| name != "cpuset.id")
+        // The following parameters are handled separately
+        .filter(|name| name != "name")
+        .filter(|name| name != "hostname")
+        .filter(|name| name != "path")
+        .filter(|name| name != "ip6.addr")
+        .filter(|name| name != "ip4.addr")
+        // the following are tunables that need to be set on start
+        // FIXME: we should really pass these to jail_create
+        .filter(|name| name != "osreldate")
+        .filter(|name| name != "osrelease")
+        // get parameters
+        .filter_map(|name| {
+            let value = get(jid, &name);
+
+            match value {
+                Err(_) => None,
+                Ok(v) => Some((name, v)),
+            }
+        });
+
+    Ok(HashMap::from_iter(params))
 }

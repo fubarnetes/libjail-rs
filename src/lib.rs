@@ -20,6 +20,7 @@ extern crate bitflags;
 
 extern crate nix;
 
+use std::collections::HashMap;
 use std::convert;
 use std::net;
 use std::path;
@@ -125,6 +126,13 @@ impl Jail {
                 .get(name)
                 .ok_or_else(|| JailError::NoSuchParameter(name.into()))
                 .map(|x| x.clone()),
+        }
+    }
+
+    pub fn params(&self) -> Result<HashMap<String, param::Value>, JailError> {
+        match self {
+            Jail::Running(r) => r.params(),
+            Jail::Stopped(s) => Ok(s.params.clone()),
         }
     }
 }

@@ -34,6 +34,8 @@ fn main() {
         running.ips().expect("could not get ip addresses")
     );
 
+    println!("Other parameters: {:#?}", running.params().unwrap());
+
     println!("Let's run a command in the jail!");
     let output = Command::new("/hostname")
         .jail(&running)

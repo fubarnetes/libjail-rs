@@ -98,3 +98,10 @@ fn get_ips(b: &mut Bencher) {
     b.iter(|| running.ips().unwrap());
     running.kill().unwrap();
 }
+
+#[bench]
+fn get_params(b: &mut Bencher) {
+    let running = StoppedJail::new("/rescue").start().unwrap();
+    b.iter(|| running.params().unwrap());
+    running.kill().unwrap();
+}

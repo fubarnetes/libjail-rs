@@ -26,7 +26,10 @@ pub enum JailError {
     #[fail(display = "No such parameter: {}", _0)]
     NoSuchParameter(String),
 
-    #[fail(display = "Could not parameter type: {:?}", _0)]
+    #[fail(display = "Generic sysctl error: {:?}", _0)]
+    SysctlError(#[cause] sysctl::SysctlError),
+
+    #[fail(display = "Could not get parameter type: {:?}", _0)]
     ParameterTypeError(#[cause] sysctl::SysctlError),
 
     #[fail(display = "Could not get string parameter length: {:?}", _0)]
