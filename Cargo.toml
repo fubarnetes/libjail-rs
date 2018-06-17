@@ -1,6 +1,6 @@
 [package]
 name = "jail"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Fabian Freyer <fabian.freyer@physik.tu-berlin.de>"]
 description = "FreeBSD jail library"
 license = "BSD-3-Clause"
@@ -8,6 +8,7 @@ repository = "https://github.com/fubarnetes/libjail-rs"
 documentation = "https://fubarnetes.github.io/libjail-rs/x86_64-unknown-freebsd/jail/index.html"
 keywords = ["freebsd", "jail", "container", "chroot"]
 categories = ["os::unix-apis", "api-bindings"]
+readme = "README.md"
 
 [lib]
 name = "jail"
