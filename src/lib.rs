@@ -237,6 +237,24 @@ impl StoppedJail {
         self
     }
 
+    /// Set the jail name
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use jail::StoppedJail;
+    /// #
+    /// let mut stopped = StoppedJail::new("/rescue")
+    /// #   .name("test_stopped_hostname")
+    ///     .hostname("example.com");
+    ///
+    /// assert_eq!(stopped.hostname, Some("example.com".to_string()));
+    /// ```
+    pub fn hostname<S: Into<String>>(mut self: Self, hostname: S) -> Self {
+        self.hostname = Some(hostname.into());
+        self
+    }
+
     /// Set a jail parameter
     ///
     /// # Examples
@@ -341,6 +359,29 @@ impl RunningJail {
     /// ```
     pub fn name(self: &RunningJail) -> Result<String, JailError> {
         self.param("name")?.unpack_string()
+    }
+
+    /// Return the jail's `name`.
+    ///
+    /// The name will be internall resolved using
+    /// [jail_getname](fn.jail_getname.html).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use jail::StoppedJail;
+    /// #
+    /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_name")
+    /// #     .hostname("testjail.example.com")
+    /// #     .start()
+    /// #     .expect("Could not start jail");
+    /// assert_eq!(running.hostname().unwrap(), "testjail.example.com");
+    /// #
+    /// # running.kill();
+    /// ```
+    pub fn hostname(self: &RunningJail) -> Result<String, JailError> {
+        self.param("host.hostname")?.unpack_string()
     }
 
     /// Get the IP addresses
