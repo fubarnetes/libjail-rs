@@ -329,4 +329,71 @@ impl RunningJail {
         let stopped = self.stop()?;
         stopped.start()
     }
+
+    /// Returns an Iterator over all running jails on this host.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::RunningJail;
+    /// # use jail::StoppedJail;
+    /// # let mut running_jails: Vec<RunningJail> = (1..5)
+    /// #     .map(|i| {
+    /// #         StoppedJail::new("/rescue")
+    /// #             .name(format!("testjail_iterate_{}", i))
+    /// #             .start()
+    /// #             .expect("failed to start jail")
+    /// #     })
+    /// #     .collect();
+    ///
+    /// for running in RunningJail::all() {
+    ///     println!("jail: {}", running.name().unwrap());
+    /// }
+    /// #
+    /// # for to_kill in running_jails.drain(..) {
+    /// #     to_kill.kill().expect("failed to kill jail");
+    /// # }
+    /// ```
+    pub fn all() -> RunningJails {
+        RunningJails::default()
+    }
+}
+
+/// An Iterator over running Jails
+///
+/// See [RunningJail::all()](struct.RunningJail.html#method.all) for a usage
+/// example.
+#[cfg(target_os = "freebsd")]
+pub struct RunningJails {
+    lastjid: i32,
+}
+
+#[cfg(target_os = "freebsd")]
+impl Default for RunningJails {
+    fn default() -> Self {
+        RunningJails { lastjid: 0 }
+    }
+}
+
+#[cfg(target_os = "freebsd")]
+impl RunningJails {
+    pub fn new() -> Self {
+        RunningJails::default()
+    }
+}
+
+#[cfg(target_os = "freebsd")]
+impl Iterator for RunningJails {
+    type Item = RunningJail;
+
+    fn next(&mut self) -> Option<RunningJail> {
+        let jid = match sys::jail_nextjid(self.lastjid) {
+            Ok(j) => j,
+            Err(_) => return None,
+        };
+
+        self.lastjid = jid;
+
+        Some(RunningJail { jid })
+    }
 }
