@@ -38,7 +38,25 @@ pub enum Type {
     Ipv6Addrs,
 }
 
+#[cfg(target_os = "freebsd")]
 impl Type {
+    /// Get a parameter type from the name
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::of_param("osreldate").unwrap(), Type::Int);
+    /// assert_eq!(Type::of_param("osrelease").unwrap(), Type::String);
+    /// assert_eq!(Type::of_param("ip4.addr").unwrap(), Type::Ipv4Addrs);
+    /// assert_eq!(Type::of_param("ip6.addr").unwrap(), Type::Ipv6Addrs);
+    /// ```
+    pub fn of_param(name: &str) -> Result<Type, JailError> {
+        let (ctl_type, _) = info(name)?;
+
+        ctltype_to_type(name, ctl_type)
+    }
+
     /// Check if this type is a string.
     ///
     /// # Example
@@ -493,6 +511,33 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
     };
 
     Ok((paramtype, typesize))
+}
+
+#[cfg(target_os = "freebsd")]
+fn ctltype_to_type(name: &str, ctl_type: CtlType) -> Result<Type, JailError> {
+    let param_type = match ctl_type {
+        CtlType::Int => Type::Int,
+        CtlType::S64 => Type::S64,
+        CtlType::Uint => Type::Uint,
+        CtlType::Long => Type::Long,
+        CtlType::Ulong => Type::Ulong,
+        CtlType::U64 => Type::U64,
+        CtlType::U8 => Type::U8,
+        CtlType::U16 => Type::U16,
+        CtlType::S8 => Type::S8,
+        CtlType::S16 => Type::S16,
+        CtlType::S32 => Type::S32,
+        CtlType::U32 => Type::U32,
+        CtlType::String => Type::String,
+        CtlType::Struct => match name {
+            "ip4.addr" => Type::Ipv4Addrs,
+            "ip6.addr" => Type::Ipv6Addrs,
+            _ => return Err(JailError::ParameterTypeUnsupported(ctl_type)),
+        },
+        _ => return Err(JailError::ParameterTypeUnsupported(ctl_type)),
+    };
+
+    Ok(param_type)
 }
 
 /// Get a jail parameter given the jid and the parameter name.
