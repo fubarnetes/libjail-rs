@@ -411,7 +411,7 @@ impl Value {
     /// assert!(Value::S64(64i64).unpack_u64().is_err());
     /// ```
     pub fn unpack_u64(self) -> Result<u64, JailError> {
-        #[allow(identity_conversion)]
+        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
         match self {
             Value::U64(v) => Ok(v),
             Value::U32(v) => Ok(v.into()),
@@ -447,7 +447,7 @@ impl Value {
     /// assert!(Value::U64(64u64).unpack_i64().is_err());
     /// ```
     pub fn unpack_i64(self) -> Result<i64, JailError> {
-        #[allow(identity_conversion)]
+        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
         match self {
             Value::S64(v) => Ok(v),
             Value::S32(v) => Ok(v.into()),
@@ -722,7 +722,7 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
     assert_eq!(ctltype, paramtype.into());
 
     // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
-    #[allow(identity_conversion)]
+    #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
     match value {
         Value::String(s) => {
             bytes = CString::new(s)
