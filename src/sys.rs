@@ -143,6 +143,39 @@ pub fn jail_getid(name: &str) -> Result<i32, JailError> {
     }
 }
 
+/// Get the next `jid` given the last `jid`.
+#[cfg(target_os = "freebsd")]
+pub fn jail_nextjid(lastjid: i32) -> Result<i32, JailError> {
+    let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
+
+    let mut jiov = vec![
+        iovec!(b"lastjid\0"),
+        iovec!(&lastjid as *const _, mem::size_of::<i32>()),
+        iovec!(b"errmsg\0"),
+        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
+    ];
+
+    let jid = unsafe {
+        libc::jail_get(
+            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov.len() as u32,
+            JailFlags::empty().bits,
+        )
+    };
+
+    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) }
+        .to_string_lossy()
+        .to_string();
+
+    match jid {
+        e if e < 0 => match errmsg[0] {
+            0 => Err(JailError::from_errno()),
+            _ => Err(JailError::JailGetError(err)),
+        },
+        _ => Ok(jid),
+    }
+}
+
 /// Remove a jail with the given `jid`.
 ///
 /// This will kill all processes belonging to the jail, and remove any children
