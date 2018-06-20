@@ -615,85 +615,78 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
     }?;
 
     // Wrap in Enum and return
-    match paramtype {
-        CtlType::Int => Ok(Value::Int(
+    match ctltype_to_type(name, paramtype)? {
+        Type::Int => Ok(Value::Int(
             LittleEndian::read_int(&value, mem::size_of::<libc::c_int>()) as libc::c_int,
         )),
-        CtlType::S64 => Ok(Value::S64(LittleEndian::read_i64(&value))),
-        CtlType::Uint => Ok(Value::Uint(LittleEndian::read_uint(
-            &value,
-            mem::size_of::<libc::c_uint>(),
-        ) as libc::c_uint)),
-        CtlType::Long => Ok(Value::Long(LittleEndian::read_int(
-            &value,
-            mem::size_of::<libc::c_long>(),
-        ) as libc::c_long)),
-        CtlType::Ulong => Ok(Value::Ulong(LittleEndian::read_uint(
+        Type::S64 => Ok(Value::S64(LittleEndian::read_i64(&value))),
+        Type::Uint => Ok(Value::Uint(
+            LittleEndian::read_uint(&value, mem::size_of::<libc::c_uint>()) as libc::c_uint,
+        )),
+        Type::Long => Ok(Value::Long(
+            LittleEndian::read_int(&value, mem::size_of::<libc::c_long>()) as libc::c_long,
+        )),
+        Type::Ulong => Ok(Value::Ulong(LittleEndian::read_uint(
             &value,
             mem::size_of::<libc::c_ulong>(),
         ) as libc::c_ulong)),
-        CtlType::U64 => Ok(Value::U64(LittleEndian::read_u64(&value))),
-        CtlType::U8 => Ok(Value::U8(value[0])),
-        CtlType::U16 => Ok(Value::U16(LittleEndian::read_u16(&value))),
-        CtlType::S8 => Ok(Value::S8(value[0] as i8)),
-        CtlType::S16 => Ok(Value::S16(LittleEndian::read_i16(&value))),
-        CtlType::S32 => Ok(Value::S32(LittleEndian::read_i32(&value))),
-        CtlType::U32 => Ok(Value::U32(LittleEndian::read_u32(&value))),
-        CtlType::String => Ok(Value::String({
+        Type::U64 => Ok(Value::U64(LittleEndian::read_u64(&value))),
+        Type::U8 => Ok(Value::U8(value[0])),
+        Type::U16 => Ok(Value::U16(LittleEndian::read_u16(&value))),
+        Type::S8 => Ok(Value::S8(value[0] as i8)),
+        Type::S16 => Ok(Value::S16(LittleEndian::read_i16(&value))),
+        Type::S32 => Ok(Value::S32(LittleEndian::read_i32(&value))),
+        Type::U32 => Ok(Value::U32(LittleEndian::read_u32(&value))),
+        Type::String => Ok(Value::String({
             unsafe { CStr::from_ptr(value.as_ptr() as *mut i8) }
                 .to_string_lossy()
                 .into_owned()
         })),
-        CtlType::Struct => match name {
-            // FIXME: The following is just placeholder code.
-            "ip4.addr" => {
-                // Make sure we got the right data size
-                let addrsize = mem::size_of::<libc::in_addr>();
-                let count = valuesize / addrsize;
+        Type::Ipv4Addrs => {
+            // Make sure we got the right data size
+            let addrsize = mem::size_of::<libc::in_addr>();
+            let count = valuesize / addrsize;
 
-                assert_eq!(
-                    0,
-                    typesize % addrsize,
-                    "Error: memory size mismatch. Length of data \
-                     retrieved is not a multiple of the size of in_addr."
-                );
+            assert_eq!(
+                0,
+                typesize % addrsize,
+                "Error: memory size mismatch. Length of data \
+                 retrieved is not a multiple of the size of in_addr."
+            );
 
-                #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
-                let ips: Vec<net::Ipv4Addr> = unsafe {
-                    slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count)
-                }.iter()
-                    .map(|in_addr| u32::from_be(in_addr.s_addr))
-                    .map(net::Ipv4Addr::from)
-                    .filter(|ip| !ip.is_unspecified())
-                    .collect();
+            #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
+            let ips: Vec<net::Ipv4Addr> = unsafe {
+                slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count)
+            }.iter()
+                .map(|in_addr| u32::from_be(in_addr.s_addr))
+                .map(net::Ipv4Addr::from)
+                .filter(|ip| !ip.is_unspecified())
+                .collect();
 
-                Ok(Value::Ipv4Addrs(ips))
-            }
-            "ip6.addr" => {
-                // Make sure we got the right data size
-                let addrsize = mem::size_of::<libc::in6_addr>();
-                let count = valuesize / addrsize;
+            Ok(Value::Ipv4Addrs(ips))
+        }
+        Type::Ipv6Addrs => {
+            // Make sure we got the right data size
+            let addrsize = mem::size_of::<libc::in6_addr>();
+            let count = valuesize / addrsize;
 
-                assert_eq!(
-                    0,
-                    typesize % addrsize,
-                    "Error: memory size mismatch. Length of data \
-                     retrieved is not a multiple of the size of in_addr."
-                );
+            assert_eq!(
+                0,
+                typesize % addrsize,
+                "Error: memory size mismatch. Length of data \
+                 retrieved is not a multiple of the size of in_addr."
+            );
 
-                #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
-                let ips: Vec<net::Ipv6Addr> = unsafe {
-                    slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count)
-                }.iter()
-                    .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
-                    .filter(|ip| !ip.is_unspecified())
-                    .collect();
+            #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
+            let ips: Vec<net::Ipv6Addr> = unsafe {
+                slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count)
+            }.iter()
+                .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
+                .filter(|ip| !ip.is_unspecified())
+                .collect();
 
-                Ok(Value::Ipv6Addrs(ips))
-            }
-            _ => Err(JailError::ParameterTypeUnsupported(paramtype)),
-        },
-        _ => Err(JailError::ParameterTypeUnsupported(paramtype)),
+            Ok(Value::Ipv6Addrs(ips))
+        }
     }
 }
 
