@@ -20,6 +20,11 @@ fn main() {
     println!("created new jail with JID {}", running.jid);
 
     println!(
+        "the jail's path is {:?}",
+        running.path().expect("could not get path")
+    );
+
+    println!(
         "the jail's jailname is '{}'",
         running.name().expect("could not get name")
     );
@@ -29,6 +34,8 @@ fn main() {
         running.ips().expect("could not get ip addresses")
     );
 
+    println!("Other parameters: {:#?}", running.params().unwrap());
+
     println!("Let's run a command in the jail!");
     let output = Command::new("/hostname")
         .jail(&running)
@@ -36,6 +43,10 @@ fn main() {
         .expect("Failed to execute command in jail");
 
     println!("output: {}", String::from_utf8_lossy(&output.stdout));
+
+    println!("jid before restart: {}", running.jid);
+    let running = running.restart().unwrap();
+    println!("jid after restart: {}", running.jid);
 
     running.kill().expect("Failed to stop Jail");
 }

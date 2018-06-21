@@ -2,8 +2,10 @@
 
 use libc;
 
+use std::collections::HashMap;
 use std::convert;
 use std::ffi::{CStr, CString};
+use std::iter::FromIterator;
 use std::mem;
 use std::net;
 use std::slice;
@@ -36,7 +38,25 @@ pub enum Type {
     Ipv6Addrs,
 }
 
+#[cfg(target_os = "freebsd")]
 impl Type {
+    /// Get a parameter type from the name
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::of_param("osreldate").unwrap(), Type::Int);
+    /// assert_eq!(Type::of_param("osrelease").unwrap(), Type::String);
+    /// assert_eq!(Type::of_param("ip4.addr").unwrap(), Type::Ipv4Addrs);
+    /// assert_eq!(Type::of_param("ip6.addr").unwrap(), Type::Ipv6Addrs);
+    /// ```
+    pub fn of_param(name: &str) -> Result<Type, JailError> {
+        let (ctl_type, _) = info(name)?;
+
+        ctltype_to_type(name, ctl_type)
+    }
+
     /// Check if this type is a string.
     ///
     /// # Example
@@ -391,7 +411,7 @@ impl Value {
     /// assert!(Value::S64(64i64).unpack_u64().is_err());
     /// ```
     pub fn unpack_u64(self) -> Result<u64, JailError> {
-        #[allow(identity_conversion)]
+        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
         match self {
             Value::U64(v) => Ok(v),
             Value::U32(v) => Ok(v.into()),
@@ -427,7 +447,7 @@ impl Value {
     /// assert!(Value::U64(64u64).unpack_i64().is_err());
     /// ```
     pub fn unpack_i64(self) -> Result<i64, JailError> {
-        #[allow(identity_conversion)]
+        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
         match self {
             Value::S64(v) => Ok(v),
             Value::S32(v) => Ok(v.into()),
@@ -491,6 +511,33 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
     };
 
     Ok((paramtype, typesize))
+}
+
+#[cfg(target_os = "freebsd")]
+fn ctltype_to_type(name: &str, ctl_type: CtlType) -> Result<Type, JailError> {
+    let param_type = match ctl_type {
+        CtlType::Int => Type::Int,
+        CtlType::S64 => Type::S64,
+        CtlType::Uint => Type::Uint,
+        CtlType::Long => Type::Long,
+        CtlType::Ulong => Type::Ulong,
+        CtlType::U64 => Type::U64,
+        CtlType::U8 => Type::U8,
+        CtlType::U16 => Type::U16,
+        CtlType::S8 => Type::S8,
+        CtlType::S16 => Type::S16,
+        CtlType::S32 => Type::S32,
+        CtlType::U32 => Type::U32,
+        CtlType::String => Type::String,
+        CtlType::Struct => match name {
+            "ip4.addr" => Type::Ipv4Addrs,
+            "ip6.addr" => Type::Ipv6Addrs,
+            _ => return Err(JailError::ParameterTypeUnsupported(ctl_type)),
+        },
+        _ => return Err(JailError::ParameterTypeUnsupported(ctl_type)),
+    };
+
+    Ok(param_type)
 }
 
 /// Get a jail parameter given the jid and the parameter name.
@@ -568,85 +615,78 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
     }?;
 
     // Wrap in Enum and return
-    match paramtype {
-        CtlType::Int => Ok(Value::Int(
+    match ctltype_to_type(name, paramtype)? {
+        Type::Int => Ok(Value::Int(
             LittleEndian::read_int(&value, mem::size_of::<libc::c_int>()) as libc::c_int,
         )),
-        CtlType::S64 => Ok(Value::S64(LittleEndian::read_i64(&value))),
-        CtlType::Uint => Ok(Value::Uint(LittleEndian::read_uint(
-            &value,
-            mem::size_of::<libc::c_uint>(),
-        ) as libc::c_uint)),
-        CtlType::Long => Ok(Value::Long(LittleEndian::read_int(
-            &value,
-            mem::size_of::<libc::c_long>(),
-        ) as libc::c_long)),
-        CtlType::Ulong => Ok(Value::Ulong(LittleEndian::read_uint(
+        Type::S64 => Ok(Value::S64(LittleEndian::read_i64(&value))),
+        Type::Uint => Ok(Value::Uint(
+            LittleEndian::read_uint(&value, mem::size_of::<libc::c_uint>()) as libc::c_uint,
+        )),
+        Type::Long => Ok(Value::Long(
+            LittleEndian::read_int(&value, mem::size_of::<libc::c_long>()) as libc::c_long,
+        )),
+        Type::Ulong => Ok(Value::Ulong(LittleEndian::read_uint(
             &value,
             mem::size_of::<libc::c_ulong>(),
         ) as libc::c_ulong)),
-        CtlType::U64 => Ok(Value::U64(LittleEndian::read_u64(&value))),
-        CtlType::U8 => Ok(Value::U8(value[0])),
-        CtlType::U16 => Ok(Value::U16(LittleEndian::read_u16(&value))),
-        CtlType::S8 => Ok(Value::S8(value[0] as i8)),
-        CtlType::S16 => Ok(Value::S16(LittleEndian::read_i16(&value))),
-        CtlType::S32 => Ok(Value::S32(LittleEndian::read_i32(&value))),
-        CtlType::U32 => Ok(Value::U32(LittleEndian::read_u32(&value))),
-        CtlType::String => Ok(Value::String({
+        Type::U64 => Ok(Value::U64(LittleEndian::read_u64(&value))),
+        Type::U8 => Ok(Value::U8(value[0])),
+        Type::U16 => Ok(Value::U16(LittleEndian::read_u16(&value))),
+        Type::S8 => Ok(Value::S8(value[0] as i8)),
+        Type::S16 => Ok(Value::S16(LittleEndian::read_i16(&value))),
+        Type::S32 => Ok(Value::S32(LittleEndian::read_i32(&value))),
+        Type::U32 => Ok(Value::U32(LittleEndian::read_u32(&value))),
+        Type::String => Ok(Value::String({
             unsafe { CStr::from_ptr(value.as_ptr() as *mut i8) }
                 .to_string_lossy()
                 .into_owned()
         })),
-        CtlType::Struct => match name {
-            // FIXME: The following is just placeholder code.
-            "ip4.addr" => {
-                // Make sure we got the right data size
-                let addrsize = mem::size_of::<libc::in_addr>();
-                let count = valuesize / addrsize;
+        Type::Ipv4Addrs => {
+            // Make sure we got the right data size
+            let addrsize = mem::size_of::<libc::in_addr>();
+            let count = valuesize / addrsize;
 
-                assert_eq!(
-                    0,
-                    typesize % addrsize,
-                    "Error: memory size mismatch. Length of data \
-                     retrieved is not a multiple of the size of in_addr."
-                );
+            assert_eq!(
+                0,
+                typesize % addrsize,
+                "Error: memory size mismatch. Length of data \
+                 retrieved is not a multiple of the size of in_addr."
+            );
 
-                #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
-                let ips: Vec<net::Ipv4Addr> = unsafe {
-                    slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count)
-                }.iter()
-                    .map(|in_addr| u32::from_be(in_addr.s_addr))
-                    .map(net::Ipv4Addr::from)
-                    .filter(|ip| !ip.is_unspecified())
-                    .collect();
+            #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
+            let ips: Vec<net::Ipv4Addr> = unsafe {
+                slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count)
+            }.iter()
+                .map(|in_addr| u32::from_be(in_addr.s_addr))
+                .map(net::Ipv4Addr::from)
+                .filter(|ip| !ip.is_unspecified())
+                .collect();
 
-                Ok(Value::Ipv4Addrs(ips))
-            }
-            "ip6.addr" => {
-                // Make sure we got the right data size
-                let addrsize = mem::size_of::<libc::in6_addr>();
-                let count = valuesize / addrsize;
+            Ok(Value::Ipv4Addrs(ips))
+        }
+        Type::Ipv6Addrs => {
+            // Make sure we got the right data size
+            let addrsize = mem::size_of::<libc::in6_addr>();
+            let count = valuesize / addrsize;
 
-                assert_eq!(
-                    0,
-                    typesize % addrsize,
-                    "Error: memory size mismatch. Length of data \
-                     retrieved is not a multiple of the size of in_addr."
-                );
+            assert_eq!(
+                0,
+                typesize % addrsize,
+                "Error: memory size mismatch. Length of data \
+                 retrieved is not a multiple of the size of in_addr."
+            );
 
-                #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
-                let ips: Vec<net::Ipv6Addr> = unsafe {
-                    slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count)
-                }.iter()
-                    .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
-                    .filter(|ip| !ip.is_unspecified())
-                    .collect();
+            #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
+            let ips: Vec<net::Ipv6Addr> = unsafe {
+                slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count)
+            }.iter()
+                .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
+                .filter(|ip| !ip.is_unspecified())
+                .collect();
 
-                Ok(Value::Ipv6Addrs(ips))
-            }
-            _ => Err(JailError::ParameterTypeUnsupported(paramtype)),
-        },
-        _ => Err(JailError::ParameterTypeUnsupported(paramtype)),
+            Ok(Value::Ipv6Addrs(ips))
+        }
     }
 }
 
@@ -682,7 +722,7 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
     assert_eq!(ctltype, paramtype.into());
 
     // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
-    #[allow(identity_conversion)]
+    #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
     match value {
         Value::String(s) => {
             bytes = CString::new(s)
@@ -753,4 +793,65 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
         },
         _ => Ok(()),
     }
+}
+
+/// Set a jail parameter given the jid, the parameter name and the value.
+///
+/// # Examples
+/// ```
+/// use jail::param;
+/// # use jail::StoppedJail;
+/// # let jail = StoppedJail::new("/rescue")
+/// #     .name("testjail_get_all_params")
+/// #     .param("allow.raw_sockets", param::Value::Int(1))
+/// #     .start()
+/// #     .expect("could not start jail");
+/// # let jid = jail.jid;
+///
+/// let params = param::get_all(jid)
+///     .expect("could not get all parameters");
+///
+/// assert_eq!(params.get("allow.raw_sockets"), Some(&param::Value::Int(1)));
+/// # jail.kill().expect("could not stop jail");
+/// ```
+pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
+    let params = Ctl::new("security.jail.param")
+        .map_err(JailError::SysctlError)?
+        .into_iter()
+        .filter_map(Result::ok)
+        // Get name
+        .map(|ctl| ctl.name())
+        .filter_map(Result::ok)
+        // Remove leading "security.jail.param"
+        .filter(|name| name.starts_with("security.jail.param"))
+        .map(|string| string["security.jail.param.".len()..].to_string())
+        // Remove elements with a trailing dot (nodes)
+        .filter(|name| !name.ends_with('.'))
+        // The following parameters are dynamic
+        .filter(|name| name != "jid")
+        .filter(|name| name != "dying")
+        .filter(|name| name != "parent")
+        .filter(|name| name != "children.cur")
+        .filter(|name| name != "cpuset.id")
+        // The following parameters are handled separately
+        .filter(|name| name != "name")
+        .filter(|name| name != "hostname")
+        .filter(|name| name != "path")
+        .filter(|name| name != "ip6.addr")
+        .filter(|name| name != "ip4.addr")
+        // the following are tunables that need to be set on start
+        // FIXME: we should really pass these to jail_create
+        .filter(|name| name != "osreldate")
+        .filter(|name| name != "osrelease")
+        // get parameters
+        .filter_map(|name| {
+            let value = get(jid, &name);
+
+            match value {
+                Err(_) => None,
+                Ok(v) => Some((name, v)),
+            }
+        });
+
+    Ok(HashMap::from_iter(params))
 }

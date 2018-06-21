@@ -1,6 +1,6 @@
 [package]
 name = "jail"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Fabian Freyer <fabian.freyer@physik.tu-berlin.de>"]
 description = "FreeBSD jail library"
 license = "BSD-3-Clause"
@@ -27,3 +27,6 @@ failure = "~0.1.1"
 libc = "~0.2.41"
 sysctl = "~0.2.0"
 nix= "^0.11.0"
+
+[dev-dependencies]
+prettytable-rs = "0.7.0"

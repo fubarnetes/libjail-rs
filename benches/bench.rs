@@ -4,7 +4,7 @@ extern crate test;
 extern crate jail;
 
 use jail::process::Jailed;
-use jail::StoppedJail;
+use jail::{RunningJail, StoppedJail};
 use std::process::Command;
 use test::Bencher;
 
@@ -97,4 +97,42 @@ fn get_ips(b: &mut Bencher) {
         .unwrap();
     b.iter(|| running.ips().unwrap());
     running.kill().unwrap();
+}
+
+#[bench]
+fn get_params(b: &mut Bencher) {
+    let running = StoppedJail::new("/rescue").start().unwrap();
+    b.iter(|| running.params().unwrap());
+    running.kill().unwrap();
+}
+
+#[bench]
+fn save(b: &mut Bencher) {
+    let running = StoppedJail::new("/rescue").start().unwrap();
+    b.iter(|| running.save().unwrap());
+    running.kill().unwrap();
+}
+
+#[bench]
+fn iterate_100_jails(b: &mut Bencher) {
+    // create 100 jails to iterate over
+    let mut running_jails: Vec<RunningJail> = (1..100)
+        .map(|i| {
+            StoppedJail::new("/rescue")
+                .name(format!("benchjail_iterate_{}", i))
+                .start()
+                .expect("failed to start jail")
+        })
+        .collect();
+
+    b.iter(|| {
+        for running in RunningJail::all() {
+            println!("jail: {}", running.name().unwrap());
+        }
+    });
+
+    // kill all the jails again
+    for to_kill in running_jails.drain(..) {
+        to_kill.kill().expect("failed to kill jail");
+    }
 }
