@@ -20,6 +20,8 @@ extern crate bitflags;
 
 extern crate nix;
 
+extern crate rctl;
+
 use std::collections::HashMap;
 use std::convert;
 use std::net;

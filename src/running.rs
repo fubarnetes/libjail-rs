@@ -1,4 +1,5 @@
 use param;
+use rctl;
 use sys;
 use JailError;
 use StoppedJail;
@@ -356,6 +357,31 @@ impl RunningJail {
     /// ```
     pub fn all() -> RunningJails {
         RunningJails::default()
+    }
+
+    /// Get the `RCTL` / `RACCT` usage statistics for this jail.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use jail::{StoppedJail, JailError};
+    /// #
+    /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_racct")
+    /// #     .start()
+    /// #     .expect("Could not start jail");
+    /// match running.racct_statistics() {
+    ///     Ok(stats) => println!("{:#?}", stats),
+    ///     Err(e) => println!("Error: {}", e),
+    /// };
+    /// #
+    /// # running.kill();
+    /// ```
+    pub fn racct_statistics(&self) -> Result<HashMap<rctl::Resource, usize>, JailError> {
+        // First let's try to get the RACCT statistics in the happy path
+        rctl::Subject::jail_name(self.name()?)
+            .usage()
+            .map_err(JailError::RctlError)
     }
 }
 

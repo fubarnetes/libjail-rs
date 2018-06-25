@@ -1,4 +1,5 @@
 use param;
+use rctl;
 use sysctl;
 
 use std::io;
@@ -64,6 +65,9 @@ pub enum JailError {
 
     #[fail(display = "Could not serialize value to bytes")]
     SerializeFailed,
+
+    #[fail(display = "RCTL Error: {}", _0)]
+    RctlError(#[cause] rctl::Error),
 }
 
 impl JailError {
