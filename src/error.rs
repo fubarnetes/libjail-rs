@@ -68,6 +68,9 @@ pub enum JailError {
 
     #[fail(display = "RCTL Error: {}", _0)]
     RctlError(#[cause] rctl::Error),
+
+    #[fail(display = "Jail must have a name if RCTL limits are to be set")]
+    UnnamedButLimited,
 }
 
 impl JailError {
