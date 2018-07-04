@@ -1,4 +1,5 @@
 extern crate jail;
+extern crate rctl;
 
 use std::process::Command;
 
@@ -44,6 +45,13 @@ fn main() {
 
     println!("output: {}", String::from_utf8_lossy(&output.stdout));
 
+    match running.racct_statistics() {
+        Ok(stats) => println!("Resource accounting statistics: {:#?}", stats),
+        Err(jail::JailError::RctlError(rctl::Error::InvalidKernelState(state))) => {
+            println!("Resource accounting is reported as {}", state)
+        }
+        Err(e) => println!("Other Error: {}", e),
+    };
     println!("jid before restart: {}", running.jid);
     let running = running.restart().unwrap();
     println!("jid after restart: {}", running.jid);

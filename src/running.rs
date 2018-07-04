@@ -1,4 +1,5 @@
 use param;
+use rctl;
 use sys;
 use JailError;
 use StoppedJail;
@@ -243,7 +244,16 @@ impl RunningJail {
     /// running.kill();
     /// ```
     pub fn kill(self: RunningJail) -> Result<(), JailError> {
-        sys::jail_remove(self.jid).and_then(|_| Ok(()))
+        let name = self.name()?;
+        sys::jail_remove(self.jid)?;
+
+        // Tear down RCTL rules
+        if &name != "" {
+            let filter: rctl::Filter = rctl::Subject::jail_name(name).into();
+            filter.remove_rules().map_err(JailError::RctlError)?;
+        }
+
+        Ok(())
     }
 
     /// Create a StoppedJail from a RunningJail, while not consuming the
@@ -275,6 +285,22 @@ impl RunningJail {
         stopped.hostname = self.hostname().ok();
         stopped.ips = self.ips()?;
         stopped.params = self.params()?;
+
+        // Save RCTL rules
+        let name = self.name();
+
+        if let Ok(name) = name {
+            let filter: rctl::Filter = rctl::Subject::jail_name(name).into();
+            for rctl::Rule {
+                subject: _,
+                resource,
+                limit,
+                action,
+            } in filter.rules().map_err(JailError::RctlError)?.into_iter()
+            {
+                stopped.limits.push((resource, limit, action));
+            }
+        }
 
         Ok(stopped)
     }
@@ -356,6 +382,31 @@ impl RunningJail {
     /// ```
     pub fn all() -> RunningJails {
         RunningJails::default()
+    }
+
+    /// Get the `RCTL` / `RACCT` usage statistics for this jail.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use jail::{StoppedJail, JailError};
+    /// #
+    /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_racct")
+    /// #     .start()
+    /// #     .expect("Could not start jail");
+    /// match running.racct_statistics() {
+    ///     Ok(stats) => println!("{:#?}", stats),
+    ///     Err(e) => println!("Error: {}", e),
+    /// };
+    /// #
+    /// # running.kill();
+    /// ```
+    pub fn racct_statistics(&self) -> Result<HashMap<rctl::Resource, usize>, JailError> {
+        // First let's try to get the RACCT statistics in the happy path
+        rctl::Subject::jail_name(self.name()?)
+            .usage()
+            .map_err(JailError::RctlError)
     }
 }
 

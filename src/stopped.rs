@@ -3,6 +3,7 @@ use std::net;
 use std::path;
 
 use param;
+use rctl;
 use sys;
 use JailError;
 use RunningJail;
@@ -25,6 +26,9 @@ pub struct StoppedJail {
 
     /// A list of IP (v4 and v6) addresses to be assigned to this jail
     pub ips: Vec<net::IpAddr>,
+
+    /// A list of resource limits
+    pub limits: Vec<(rctl::Resource, rctl::Limit, rctl::Action)>,
 }
 
 #[cfg(target_os = "freebsd")]
@@ -36,6 +40,7 @@ impl Default for StoppedJail {
             hostname: None,
             params: HashMap::new(),
             ips: vec![],
+            limits: vec![],
         }
     }
 }
@@ -78,6 +83,11 @@ impl StoppedJail {
             Some(ref p) => p.clone(),
         };
 
+        // If we don't have a name, we can't have RCTL rules...
+        if self.name.is_none() && !self.limits.is_empty() {
+            return Err(JailError::UnnamedButLimited);
+        }
+
         let ret = sys::jail_create(
             &path,
             self.name.as_ref().map(String::as_str),
@@ -113,6 +123,24 @@ impl StoppedJail {
         // Set remaining parameters
         for (param, value) in self.params {
             param::set(ret.jid, &param, value)?;
+        }
+
+        // Set resource limits
+        if !self.limits.is_empty() {
+            let subject = rctl::Subject::jail_name(self.name.expect(
+                "Unreachable: Should have thrown \
+                 JailError::UnnamedButLimited",
+            ));
+            for (resource, limit, action) in self.limits {
+                let rule = rctl::Rule {
+                    subject: subject.clone(),
+                    resource,
+                    limit,
+                    action,
+                };
+
+                rule.apply().map_err(JailError::RctlError)?;
+            }
         }
 
         Ok(ret)
@@ -167,6 +195,30 @@ impl StoppedJail {
     /// ```
     pub fn param<S: Into<String>>(mut self: Self, param: S, value: param::Value) -> Self {
         self.params.insert(param.into(), value);
+        self
+    }
+
+    /// Set a resource limit
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// extern crate rctl;
+    /// # extern crate jail;
+    /// # use jail::StoppedJail;
+    /// use rctl;
+    /// let mut stopped = StoppedJail::new("/rescue").limit(
+    ///     rctl::Resource::MemoryUse,
+    ///     rctl::Limit::amount_per(100 * 1024 * 1024, rctl::SubjectType::Process),
+    ///     rctl::Action::Deny,
+    /// );
+    pub fn limit(
+        mut self,
+        resource: rctl::Resource,
+        limit: rctl::Limit,
+        action: rctl::Action,
+    ) -> Self {
+        self.limits.push((resource, limit, action));
         self
     }
 

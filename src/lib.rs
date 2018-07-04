@@ -20,6 +20,8 @@ extern crate bitflags;
 
 extern crate nix;
 
+extern crate rctl;
+
 use std::collections::HashMap;
 use std::convert;
 use std::net;
@@ -36,6 +38,9 @@ pub use stopped::StoppedJail;
 
 pub mod param;
 pub mod process;
+
+#[cfg(test)]
+mod tests;
 
 /// Represents a running or stopped jail.
 #[cfg(target_os = "freebsd")]
