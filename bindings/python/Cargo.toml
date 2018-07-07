@@ -1,0 +1,18 @@
+[package]
+name = "jail-python"
+version = "0.0.5"
+authors = ["Fabian Freyer <fabian.freyer@physik.tu-berlin.de>"]
+description = "Python bindings to FreeBSD jail library"
+license = "BSD-3-Clause"
+repository = "https://github.com/fubarnetes/libjail-rs"
+
+[lib]
+name = "jail"
+crate-type = ["cdylib"]
+
+[dependencies]
+jail = "^0"
+
+[dependencies.pyo3]
+version = "0.2"
+features = ["extension-module"]
