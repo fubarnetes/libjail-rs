@@ -26,6 +26,10 @@ impl JailError {
 #[class]
 struct RunningJail {
     inner: native::RunningJail,
+    // As Python keeps its own reference counter, and we can't be sure that
+    // that reference will be destroyed when we stop or kill the Jail, we have
+    // to keep track of that ourselves.
+    dead: bool,
     token: PyToken,
 }
 
@@ -35,6 +39,7 @@ impl RunningJail {
     fn __new__(obj: &PyRawObject, jid: i32) -> PyResult<()> {
         obj.init(|token| RunningJail {
             inner: native::RunningJail::from_jid(jid),
+            dead: false,
             token,
         })
     }
@@ -52,27 +57,47 @@ impl RunningJail {
 
     /// Stop the Jail, returning a StoppedJail instance with all properties,
     /// resource limits, etc.
-    fn stop(&self) -> PyResult<Py<StoppedJail>> {
+    fn stop(&mut self) -> PyResult<Py<StoppedJail>> {
+        if self.dead {
+            return Err(exc::ValueError::new(
+                "The RunningJail instance is no longer live",
+            ));
+        }
+
         let inner = self
             .inner
             .clone()
             .stop()
             .map_err(|_| exc::SystemError::new("Jail stop failed"))?;
+        self.dead = true;
         self.py().init(|token| StoppedJail { inner, token })
     }
 
     /// Kill the Jail.
-    fn kill(&self) -> PyResult<()> {
+    fn kill(&mut self) -> PyResult<()> {
+        if self.dead {
+            return Err(exc::ValueError::new(
+                "The RunningJail instance is no longer live",
+            ));
+        }
+
         self.inner
             .clone()
             .kill()
             .map_err(|_| exc::SystemError::new("Jail stop failed"))?;
+        self.dead = true;
         Ok(())
     }
 
     /// Get RACCT resource accounting information
     #[getter]
     fn get_racct_usage(&self) -> PyResult<HashMap<String, usize>> {
+        if self.dead {
+            return Err(exc::ValueError::new(
+                "The RunningJail instance is no longer live",
+            ));
+        }
+
         let usage = self.inner.racct_statistics();
         let usage_map = usage.map_err(|e| match e {
             native::JailError::RctlError(rctl::Error::InvalidKernelState(s)) => match s {
@@ -127,7 +152,11 @@ impl StoppedJail {
             .clone()
             .start()
             .map_err(|_| exc::SystemError::new("Jail start failed"))?;
-        self.py().init(|token| RunningJail { inner, token })
+        self.py().init(|token| RunningJail {
+            inner,
+            dead: false,
+            token,
+        })
     }
 }
 
