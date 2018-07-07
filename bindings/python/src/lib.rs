@@ -36,10 +36,36 @@ impl RunningJail {
         })
     }
 
+    /// Return a String representation of the Jail
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("{:?}", self.inner))
     }
 
+    #[getter]
+    /// The Jail ID
+    fn get_jid(&self) -> PyResult<i32> {
+        Ok(self.inner.jid)
+    }
+
+    /// Stop the Jail, returning a StoppedJail instance with all properties,
+    /// resource limits, etc.
+    fn stop(&self) -> PyResult<Py<StoppedJail>> {
+        let inner = self
+            .inner
+            .clone()
+            .stop()
+            .map_err(|_| exc::SystemError::new("Jail stop failed"))?;
+        self.py().init(|token| StoppedJail { inner, token })
+    }
+
+    /// Kill the Jail.
+    fn kill(&self) -> PyResult<()> {
+        self.inner
+            .clone()
+            .kill()
+            .map_err(|_| exc::SystemError::new("Jail stop failed"))?;
+        Ok(())
+    }
 }
 
 #[class]
@@ -62,12 +88,13 @@ impl StoppedJail {
         Ok(format!("{:?}", self.inner))
     }
 
-    fn start(&self) -> PyResult<i32> {
-        let running = self.inner
+    fn start(&self) -> PyResult<Py<RunningJail>> {
+        let inner = self
+            .inner
             .clone()
             .start()
             .map_err(|_| exc::SystemError::new("Jail start failed"))?;
-        Ok(running.jid)
+        self.py().init(|token| RunningJail { inner, token })
     }
 }
 

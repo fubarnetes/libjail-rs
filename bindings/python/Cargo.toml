@@ -7,7 +7,7 @@ license = "BSD-3-Clause"
 repository = "https://github.com/fubarnetes/libjail-rs"
 
 [lib]
-name = "jail"
+name = "jail_python"
 crate-type = ["cdylib"]
 
 [dependencies]
