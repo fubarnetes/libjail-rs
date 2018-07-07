@@ -5,12 +5,24 @@ extern crate pyo3;
 use pyo3::prelude::*;
 use pyo3::py::{class, methods, modinit};
 
-use jail::RunningJail as NativeRunningJail;
-use jail::StoppedJail as NativeStoppedJail;
+use jail as native;
+
+#[class]
+struct JailError {
+    inner: native::JailError,
+    token: PyToken,
+}
+
+#[methods]
+impl JailError {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{}", self.inner))
+    }
+}
 
 #[class]
 struct RunningJail {
-    inner: NativeRunningJail,
+    inner: native::RunningJail,
     token: PyToken,
 }
 
@@ -19,15 +31,20 @@ impl RunningJail {
     #[new]
     fn __new__(obj: &PyRawObject, jid: i32) -> PyResult<()> {
         obj.init(|token| RunningJail {
-            inner: NativeRunningJail::from_jid(jid),
+            inner: native::RunningJail::from_jid(jid),
             token,
         })
     }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.inner))
+    }
+
 }
 
 #[class]
 struct StoppedJail {
-    inner: NativeStoppedJail,
+    inner: native::StoppedJail,
     token: PyToken,
 }
 
@@ -36,9 +53,21 @@ impl StoppedJail {
     #[new]
     fn __new__(obj: &PyRawObject, path: String) -> PyResult<()> {
         obj.init(|token| StoppedJail {
-            inner: NativeStoppedJail::new(path),
+            inner: native::StoppedJail::new(path),
             token,
         })
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.inner))
+    }
+
+    fn start(&self) -> PyResult<i32> {
+        let running = self.inner
+            .clone()
+            .start()
+            .map_err(|_| exc::SystemError::new("Jail start failed"))?;
+        Ok(running.jid)
     }
 }
 
@@ -46,6 +75,7 @@ impl StoppedJail {
 fn init_mod(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<RunningJail>()?;
     m.add_class::<StoppedJail>()?;
+    m.add_class::<JailError>()?;
 
     Ok(())
 }
