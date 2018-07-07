@@ -302,6 +302,62 @@ impl Value {
         self.into()
     }
 
+    /// Format the value into a vector of bytes as expected by the jail
+    /// parameter API.
+    pub fn as_bytes(self) -> Result<Vec<u8>, JailError> {
+        let mut bytes: Vec<u8> = vec![];
+
+        // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
+        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
+        match self {
+            Value::String(s) => {
+                bytes = CString::new(s)
+                    .expect("Could not create CString from value")
+                    .to_bytes_with_nul()
+                    .to_vec();
+                Ok(())
+            }
+            Value::U8(v) => bytes.write_u8(v),
+            Value::S8(v) => bytes.write_i8(v),
+            Value::U16(v) => bytes.write_u16::<LittleEndian>(v),
+            Value::U32(v) => bytes.write_u32::<LittleEndian>(v),
+            Value::U64(v) => bytes.write_u64::<LittleEndian>(v),
+            Value::S16(v) => bytes.write_i16::<LittleEndian>(v),
+            Value::S32(v) => bytes.write_i32::<LittleEndian>(v),
+            Value::S64(v) => bytes.write_i64::<LittleEndian>(v),
+            Value::Int(v) => {
+                bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_int>())
+            }
+            Value::Long(v) => {
+                bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_long>())
+            }
+            Value::Uint(v) => {
+                bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_uint>())
+            }
+            Value::Ulong(v) => {
+                bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_ulong>())
+            }
+            Value::Ipv4Addrs(addrs) => {
+                for addr in addrs {
+                    let s_addr = nix::sys::socket::Ipv4Addr::from_std(&addr).0.s_addr;
+                    let host_u32 = u32::from_be(s_addr);
+                    bytes
+                        .write_u32::<NetworkEndian>(host_u32)
+                        .map_err(|_| JailError::SerializeFailed)?;
+                }
+                Ok(())
+            }
+            Value::Ipv6Addrs(addrs) => {
+                for addr in addrs {
+                    bytes.extend_from_slice(&addr.octets());
+                }
+                Ok(())
+            }
+        }.map_err(|_| JailError::SerializeFailed)?;
+
+        Ok(bytes)
+    }
+
     /// Attempt to unpack the Vector of IPv4 addresses contained in this value
     ///
     /// # Example
@@ -716,54 +772,11 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
     let paramname = CString::new(name).expect("Could not convert parameter name to CString");
 
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
-    let mut bytes: Vec<u8> = vec![];
 
     let paramtype: Type = (&value).into();
     assert_eq!(ctltype, paramtype.into());
 
-    // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
-    #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
-    match value {
-        Value::String(s) => {
-            bytes = CString::new(s)
-                .expect("Could not create CString from value")
-                .to_bytes_with_nul()
-                .to_vec();
-            Ok(())
-        }
-        Value::U8(v) => bytes.write_u8(v),
-        Value::S8(v) => bytes.write_i8(v),
-        Value::U16(v) => bytes.write_u16::<LittleEndian>(v),
-        Value::U32(v) => bytes.write_u32::<LittleEndian>(v),
-        Value::U64(v) => bytes.write_u64::<LittleEndian>(v),
-        Value::S16(v) => bytes.write_i16::<LittleEndian>(v),
-        Value::S32(v) => bytes.write_i32::<LittleEndian>(v),
-        Value::S64(v) => bytes.write_i64::<LittleEndian>(v),
-        Value::Int(v) => bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_int>()),
-        Value::Long(v) => bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_long>()),
-        Value::Uint(v) => {
-            bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_uint>())
-        }
-        Value::Ulong(v) => {
-            bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_ulong>())
-        }
-        Value::Ipv4Addrs(addrs) => {
-            for addr in addrs {
-                let s_addr = nix::sys::socket::Ipv4Addr::from_std(&addr).0.s_addr;
-                let host_u32 = u32::from_be(s_addr);
-                bytes
-                    .write_u32::<NetworkEndian>(host_u32)
-                    .map_err(|_| JailError::SerializeFailed)?;
-            }
-            Ok(())
-        }
-        Value::Ipv6Addrs(addrs) => {
-            for addr in addrs {
-                bytes.extend_from_slice(&addr.octets());
-            }
-            Ok(())
-        }
-    }.map_err(|_| JailError::SerializeFailed)?;
+    let mut bytes = value.as_bytes()?;
 
     let mut jiov: Vec<libc::iovec> = vec![
         iovec!(b"jid\0"),
