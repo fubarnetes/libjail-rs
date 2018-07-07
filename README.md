@@ -10,6 +10,7 @@ releases](https://img.shields.io/librariesio/release/cargo/jail.svg?style=flat-s
 [![Travis](https://img.shields.io/travis/fubarnetes/libjail-rs/master.svg?style=flat-square)](https://travis-ci.org/fubarnetes/libjail-rs)
 [![Docs: x86_64-unknown-freebsd](https://img.shields.io/badge/docs-x86__64--unknown--freebsd-blue.svg?style=flat-square)](https://fubarnetes.github.io/libjail-rs/x86_64-unknown-freebsd/jail/index.html)
 [![Docs: i686-unknown-freebsd](https://img.shields.io/badge/docs-i686--unknown--freebsd-blue.svg?style=flat-square)](https://fubarnetes.github.io/libjail-rs/i686-unknown-freebsd/jail/index.html)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffubarnetes%2Flibjail-rs.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffubarnetes%2Flibjail-rs?ref=badge_shield)
 
 libjail-rs aims to be a rust implementation of the FreeBSD [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable) library. While feature parity is a goal, a one-to-one implementation of all functions in [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable) is not.
 
@@ -70,3 +71,7 @@ test start_stop_ipv4jail        ... bench:      26,307 ns/iter (+/- 2,159)
 test start_stop_ipv6jail        ... bench:      26,988 ns/iter (+/- 2,486)
 test start_stop_jail            ... bench:      25,760 ns/iter (+/- 2,244)
 ```
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffubarnetes%2Flibjail-rs.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffubarnetes%2Flibjail-rs?ref=badge_large)
