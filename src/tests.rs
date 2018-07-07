@@ -1,9 +1,9 @@
-use rctl;
-use stopped::StoppedJail;
 use nix::sys::signal::Signal;
-use std::process::Command;
 use process::Jailed;
+use rctl;
 use std::os::unix::process::ExitStatusExt;
+use std::process::Command;
+use stopped::StoppedJail;
 
 #[test]
 fn test_rctl_yes() {
@@ -14,7 +14,11 @@ fn test_rctl_yes() {
 
     let running = StoppedJail::new("/")
         .name("testjail_rctl_yes")
-        .limit(rctl::Resource::Wallclock, rctl::Limit::amount(1), rctl::Action::Signal(Signal::SIGKILL))
+        .limit(
+            rctl::Resource::Wallclock,
+            rctl::Limit::amount(1),
+            rctl::Action::Signal(Signal::SIGKILL),
+        )
         .start()
         .expect("Could not start Jail");
 
@@ -29,6 +33,5 @@ fn test_rctl_yes() {
 
     println!("{:?}", output);
 
-    running.stop()
-        .expect("Could not stop Jail");
+    running.stop().expect("Could not stop Jail");
 }
