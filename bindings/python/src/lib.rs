@@ -55,6 +55,41 @@ impl RunningJail {
         Ok(self.inner.jid)
     }
 
+    #[getter]
+    fn get_parameters(&self) -> PyResult<HashMap<String, PyObject>> {
+        println!("parameter getter");
+
+        Ok(self
+            .inner
+            .params()
+            .map_err(|_| exc::SystemError::new("Could not get parameters"))?
+            .iter()
+            .filter_map(|(key, value)| {
+                let object = match value {
+                    native::param::Value::Int(i) => Some(i.into_object(self.py())),
+                    native::param::Value::String(s) => Some(s.into_object(self.py())),
+                    native::param::Value::Ipv4Addrs(addrs) => Some(
+                        addrs
+                            .iter()
+                            .map(|addr| format!("{}", addr))
+                            .collect::<Vec<String>>()
+                            .into_object(self.py()),
+                    ),
+                    native::param::Value::Ipv6Addrs(addrs) => Some(
+                        addrs
+                            .iter()
+                            .map(|addr| format!("{}", addr))
+                            .collect::<Vec<String>>()
+                            .into_object(self.py()),
+                    ),
+                    _ => None,
+                };
+
+                object.map(|x| (key.clone(), x.into_object(self.py())))
+            })
+            .collect())
+    }
+
     /// Stop the Jail, returning a StoppedJail instance with all properties,
     /// resource limits, etc.
     fn stop(&mut self) -> PyResult<Py<StoppedJail>> {
