@@ -1,6 +1,9 @@
 #![feature(proc_macro, proc_macro_path_invoc, specialization, const_fn)]
 extern crate jail;
 extern crate pyo3;
+extern crate rctl;
+
+use std::collections::HashMap;
 
 use pyo3::prelude::*;
 use pyo3::py::{class, methods, modinit};
@@ -65,6 +68,36 @@ impl RunningJail {
             .kill()
             .map_err(|_| exc::SystemError::new("Jail stop failed"))?;
         Ok(())
+    }
+
+    /// Get RACCT resource accounting information
+    #[getter]
+    fn get_racct_usage(&self) -> PyResult<HashMap<String, usize>> {
+        let usage = self.inner.racct_statistics();
+        let usage_map = usage.map_err(|e| match e {
+            native::JailError::RctlError(rctl::Error::InvalidKernelState(s)) => match s {
+                rctl::State::Disabled => exc::SystemError::new(
+                    "Resource accounting is disabled. To enable resource \
+                     accounting, set the `kern.racct.enable` tunable to 1.",
+                ),
+                rctl::State::NotPresent => exc::SystemError::new(
+                    "Resource accounting is not enabled in the kernel. \
+                     This feature requires the kernel to be compiled with \
+                     `OPTION RACCT` set. Current GENERIC kernels should \
+                     have this option set.",
+                ),
+                rctl::State::Enabled => exc::SystemError::new(
+                    "rctl::Error::InvalidKernelState returned but state \
+                     is enabled. This really shouldn't happen.",
+                ),
+            },
+            _ => exc::SystemError::new("Could not get RACCT accounting information"),
+        })?;
+
+        Ok(usage_map
+            .iter()
+            .map(|(resource, metric)| (format!("{}", resource), *metric))
+            .collect())
     }
 }
 

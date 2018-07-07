@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 jail = "^0"
+rctl = "^0"
 
 [dependencies.pyo3]
 version = "0.2"
