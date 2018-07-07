@@ -56,6 +56,17 @@ impl RunningJail {
     }
 
     #[getter]
+    fn get_ips(&self) -> PyResult<Vec<String>> {
+        Ok(self
+            .inner
+            .ips()
+            .map_err(|_| exc::SystemError::new("Could not get IP Addresses"))?
+            .iter()
+            .map(|addr| format!("{}", addr))
+            .collect())
+    }
+
+    #[getter]
     fn get_parameters(&self) -> PyResult<HashMap<String, PyObject>> {
         println!("parameter getter");
 
