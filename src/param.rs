@@ -852,10 +852,6 @@ pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
         .filter(|name| name != "path")
         .filter(|name| name != "ip6.addr")
         .filter(|name| name != "ip4.addr")
-        // the following are tunables that need to be set on start
-        // FIXME: we should really pass these to jail_create
-        .filter(|name| name != "osreldate")
-        .filter(|name| name != "osrelease")
         // get parameters
         .filter_map(|name| {
             let value = get(jid, &name);

@@ -341,6 +341,7 @@ impl RunningJail {
     /// ```
     /// # use jail::StoppedJail;
     /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_restart")
     /// #     .start()
     /// #     .unwrap();
     ///
