@@ -178,18 +178,103 @@ struct StoppedJail {
     token: PyToken,
 }
 
+fn parameter_hashmap(dict: &PyDict) -> PyResult<HashMap<String, native::param::Value>> {
+    let (converted, failed): (Vec<_>, Vec<_>) = dict
+        .iter()
+        .map(|(key, value)| {
+            let key: PyResult<&PyString> = key
+                .try_into()
+                .map_err(|_| exc::TypeError::new("Parameter key must be a string"));
+            let key: PyResult<String> = key.and_then(|k| k.extract());
+
+            let py_string: Result<&PyString, PyDowncastError> = value.try_into();
+            let py_num: Result<&PyInt, PyDowncastError> = value.try_into();
+
+            let wrapped_value = if let Ok(string) = py_string {
+                string.extract().map(native::param::Value::String)
+            } else if let Ok(num) = py_num {
+                num.extract().map(native::param::Value::Int)
+            } else {
+                Err(exc::TypeError::new(
+                    "Only string and integer parameters are supported",
+                ))
+            };
+
+            (key, wrapped_value)
+        })
+        .map(|t| match t {
+            (Ok(key), Ok(value)) => Ok((key, value)),
+            (Err(e), _) => Err(e),
+            (_, Err(e)) => Err(e),
+        })
+        .partition(Result::is_ok);
+
+    for e in failed {
+        return Err(e.unwrap_err());
+    }
+
+    Ok(converted.into_iter().map(Result::unwrap).collect())
+}
+
 #[methods]
 impl StoppedJail {
     #[new]
-    fn __new__(obj: &PyRawObject, path: String) -> PyResult<()> {
-        obj.init(|token| StoppedJail {
-            inner: native::StoppedJail::new(path),
-            token,
-        })
+    fn __new__(
+        obj: &PyRawObject,
+        path: String,
+        name: Option<String>,
+        parameters: Option<&PyDict>,
+    ) -> PyResult<()> {
+        let mut inner = native::StoppedJail::new(path);
+        inner.name = name;
+
+        if let Some(params) = parameters {
+            inner.params = parameter_hashmap(params)?;
+        }
+
+        obj.init(|token| StoppedJail { inner, token })
     }
 
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("{:?}", self.inner))
+    }
+
+    #[getter]
+    fn get_parameters(&self) -> PyResult<HashMap<String, PyObject>> {
+        Ok(self
+            .inner
+            .params
+            .iter()
+            .filter_map(|(key, value)| {
+                let object = match value {
+                    native::param::Value::Int(i) => Some(i.into_object(self.py())),
+                    native::param::Value::String(s) => Some(s.into_object(self.py())),
+                    native::param::Value::Ipv4Addrs(addrs) => Some(
+                        addrs
+                            .iter()
+                            .map(|addr| format!("{}", addr))
+                            .collect::<Vec<String>>()
+                            .into_object(self.py()),
+                    ),
+                    native::param::Value::Ipv6Addrs(addrs) => Some(
+                        addrs
+                            .iter()
+                            .map(|addr| format!("{}", addr))
+                            .collect::<Vec<String>>()
+                            .into_object(self.py()),
+                    ),
+                    _ => None,
+                };
+
+                object.map(|x| (key.clone(), x.into_object(self.py())))
+            })
+            .collect())
+    }
+
+    #[setter]
+    fn set_parameters(&mut self, dict: &PyDict) -> PyResult<()> {
+        self.inner.params = parameter_hashmap(dict)?;
+        Ok(())
     }
 
     fn start(&self) -> PyResult<Py<RunningJail>> {
