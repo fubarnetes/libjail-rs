@@ -438,6 +438,46 @@ impl RunningJail {
         }
         .map_err(JailError::JailAttachError)
     }
+
+    /// Clear the `persist` flag on the Jail.
+    ///
+    /// The kernel keeps track of jails using a per-jail resource counter.
+    /// Every running process inside the jail increments this resource counter.
+    /// The `persist` flag additionally increments the resource counter so that
+    /// the jail will not be removed once all processes within the jail will
+    /// have terminated.
+    ///
+    /// Jails started with [StoppedJail::start] start with this flag set, since
+    /// they would otherwise be immediately cleaned up again by the kernel.
+    /// This method clears the persist flag and therefore delegates cleanup to
+    /// the kernel once all jailed processes have terminated.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::process::Command;
+    /// use jail::process::Jailed;
+    ///
+    /// let jail = jail::StoppedJail::new("/rescue")
+    ///      .name("testjail_defer_cleanup")
+    ///      .start()
+    ///      .expect("could not start jail");
+    ///
+    /// let mut child = Command::new("/sleep")
+    ///              .arg("3")
+    ///              .jail(&jail)
+    ///              .spawn()
+    ///              .expect("Failed to execute command");
+    ///
+    /// jail.defer_cleanup().expect("could not defer cleanup");
+    ///
+    /// child.wait().expect("Could not wait for child.");
+    ///
+    /// jail.kill().expect_err("Jail should be dead by now.");
+    /// ```
+    pub fn defer_cleanup(&self) -> Result<(), JailError> {
+        sys::jail_clearpersist(self.jid)
+    }
 }
 
 /// An Iterator over running Jails
