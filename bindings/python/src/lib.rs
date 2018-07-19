@@ -170,6 +170,16 @@ impl RunningJail {
             .map(|(resource, metric)| (format!("{}", resource), *metric))
             .collect())
     }
+
+    fn attach(&self) -> PyResult<()> {
+        self.attach()
+            .map_err(|_| exc::SystemError::new("jail_attach failed"))
+    }
+
+    fn defer_cleanup(&self) -> PyResult<()> {
+        self.defer_cleanup()
+            .map_err(|_| exc::SystemError::new("Could not clear persist flag"))
+    }
 }
 
 #[class]
