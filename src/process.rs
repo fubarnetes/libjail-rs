@@ -1,12 +1,10 @@
 //! Jail-Specific extensions to the `std::process` module
 
-use libc;
-
 use std::process;
 
-use std::io::{Error, ErrorKind};
 use std::os::unix::process::CommandExt;
 
+use JailError;
 use RunningJail;
 
 /// Extension to the `std::process::Command` builder to run the command in a
@@ -45,17 +43,12 @@ pub trait Jailed {
 #[cfg(target_os = "freebsd")]
 impl Jailed for process::Command {
     fn jail(&mut self, jail: &RunningJail) -> &mut process::Command {
-        let jid = jail.jid;
+        let jail = *jail;
         self.before_exec(move || {
-            let ret = unsafe { libc::jail_attach(jid) };
-            match ret {
-                0 => Ok(()),
-                -1 => Err(Error::last_os_error()),
-                _ => Err(Error::new(
-                    ErrorKind::Other,
-                    "invalid return value from jail_attach",
-                )),
-            }
+            jail.attach().map_err(|err| match err {
+                JailError::JailAttachError(e) => e,
+                _ => panic!("jail.attach() failed with unexpected error"),
+            })
         });
 
         self
