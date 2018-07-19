@@ -18,6 +18,9 @@ pub enum JailError {
     #[fail(display = "jail_set syscall failed. The error message returned was: {}", _0)]
     JailSetError(String),
 
+    #[fail(display = "jail_attach syscall failed. The error message returned was: {}", _0)]
+    JailAttachError(#[cause] io::Error),
+
     #[fail(display = "invalid return code from jail_remove")]
     JailRemoveFailed,
 

@@ -1,3 +1,4 @@
+use libc;
 use param;
 use rctl;
 use sys;
@@ -5,6 +6,7 @@ use JailError;
 use StoppedJail;
 
 use std::collections::HashMap;
+use std::io::{Error, ErrorKind};
 use std::net;
 use std::path;
 
@@ -416,6 +418,19 @@ impl RunningJail {
         rctl::Subject::jail_name(self.name()?)
             .usage()
             .map_err(JailError::RctlError)
+    }
+
+    /// Jail the current process into the given jail.
+    pub fn attach(&self) -> Result<(), JailError> {
+        let ret = unsafe { libc::jail_attach(self.jid) };
+        match ret {
+            0 => Ok(()),
+            -1 => Err(Error::last_os_error()),
+            _ => Err(Error::new(
+                ErrorKind::Other,
+                "invalid return value from jail_attach",
+            )),
+        }.map_err(JailError::JailAttachError)
     }
 }
 
