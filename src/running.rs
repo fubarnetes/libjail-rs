@@ -9,7 +9,7 @@ use std::net;
 use std::path;
 
 /// Represents a running jail.
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 #[cfg(target_os = "freebsd")]
 pub struct RunningJail {
     /// The `jid` of the jail
