@@ -4,6 +4,7 @@
 
 ### Added
 * support for setting tunable jail parameters
+* support for non-persistent jails
 
 ### Changed
 * examples/jls: fixed `nix` version mismatch with `rctl` crate

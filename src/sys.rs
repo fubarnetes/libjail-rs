@@ -112,6 +112,40 @@ pub fn jail_create(
     }
 }
 
+/// Clear the persist flag
+#[cfg(target_os = "freebsd")]
+pub fn jail_clearpersist(jid: i32) -> Result<(), JailError> {
+    let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
+    let mut jiov: Vec<libc::iovec> = vec![
+        iovec!(b"jid\0"),
+        iovec!(&jid as *const _, mem::size_of::<i32>()),
+        iovec!(b"errmsg\0"),
+        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
+        iovec!(b"nopersist\0"),
+        iovec!(),
+    ];
+
+    let jid = unsafe {
+        libc::jail_set(
+            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov.len() as u32,
+            JailFlags::UPDATE.bits,
+        )
+    };
+
+    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) }
+        .to_string_lossy()
+        .to_string();
+
+    match jid {
+        e if e < 0 => match errmsg[0] {
+            0 => Err(JailError::from_errno()),
+            _ => Err(JailError::JailSetError(err)),
+        },
+        _ => Ok(()),
+    }
+}
+
 /// Get the `jid` of a jail given the name.
 ///
 /// This function attempts to parse the name into an `i32` first, which is
