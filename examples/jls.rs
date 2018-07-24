@@ -1,5 +1,7 @@
 extern crate jail;
 
+extern crate pretty_env_logger;
+
 #[macro_use]
 extern crate prettytable;
 
@@ -7,6 +9,8 @@ use jail::RunningJail;
 use prettytable::{Cell, Row, Table};
 
 fn main() {
+    pretty_env_logger::init();
+
     let mut table = Table::new();
     table.add_row(row!["JID", "IP Address", "Hostname", "Path"]);
 
