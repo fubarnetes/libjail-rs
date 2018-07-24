@@ -248,10 +248,18 @@ impl RunningJail {
         sys::jail_remove(self.jid)?;
 
         // Tear down RCTL rules
-        if &name != "" {
+        {
+            if &name == "" {
+                return Ok(());
+            }
+
             let filter: rctl::Filter = rctl::Subject::jail_name(name).into();
-            filter.remove_rules().map_err(JailError::RctlError)?;
-        }
+            match filter.remove_rules() {
+                Ok(_) => Ok(()),
+                Err(rctl::Error::InvalidKernelState(_)) => Ok(()),
+                Err(e) => Err(JailError::RctlError(e)),
+            }
+        }?;
 
         Ok(())
     }
