@@ -60,6 +60,7 @@ pub fn jail_create(
     path: &path::Path,
     params: HashMap<String, param::Value>,
 ) -> Result<i32, JailError> {
+    trace!("jail_create(path={:?}, params={:?})", path, params);
     let pathstr = CString::new(path.as_os_str().to_str().unwrap())
         .unwrap()
         .into_bytes_with_nul();
@@ -119,6 +120,7 @@ pub fn jail_create(
 
 /// Test if a jail exists. Returns
 pub fn jail_exists(jid: i32) -> bool {
+    trace!("jail_exists({})", jid);
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
     let mut jiov: Vec<libc::iovec> = vec![
         iovec!(b"jid\0"),
@@ -141,6 +143,7 @@ pub fn jail_exists(jid: i32) -> bool {
 /// Clear the persist flag
 #[cfg(target_os = "freebsd")]
 pub fn jail_clearpersist(jid: i32) -> Result<(), JailError> {
+    trace!("jail_clearpersist({})", jid);
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
     let mut jiov: Vec<libc::iovec> = vec![
         iovec!(b"jid\0"),
@@ -178,6 +181,7 @@ pub fn jail_clearpersist(jid: i32) -> Result<(), JailError> {
 /// returned if successful.
 #[cfg(target_os = "freebsd")]
 pub fn jail_getid(name: &str) -> Result<i32, JailError> {
+    trace!("jail_getid(name={:?})", name);
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
     if let Ok(jid) = name.parse::<i32>() {
@@ -217,6 +221,7 @@ pub fn jail_getid(name: &str) -> Result<i32, JailError> {
 /// Get the next `jid` given the last `jid`.
 #[cfg(target_os = "freebsd")]
 pub fn jail_nextjid(lastjid: i32) -> Result<i32, JailError> {
+    trace!("jail_nextjid(lastjid={})", lastjid);
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
     let mut jiov = vec![
@@ -253,6 +258,7 @@ pub fn jail_nextjid(lastjid: i32) -> Result<i32, JailError> {
 /// of that jail.
 #[cfg(target_os = "freebsd")]
 pub fn jail_remove(jid: i32) -> Result<(), JailError> {
+    trace!("jail_remove(jid={})", jid);
     let ret = unsafe { libc::jail_remove(jid) };
     match ret {
         0 => Ok(()),
