@@ -76,8 +76,7 @@ pub fn jail_create(
                 CString::new(key.clone()).ok()?,
                 value.clone().as_bytes().ok()?,
             ))
-        })
-        .collect();
+        }).collect();
 
     let mut param_jiov: Vec<libc::iovec> = parameter_array
         .iter()
@@ -86,8 +85,7 @@ pub fn jail_create(
                 iovec!(key.as_ptr(), key.as_bytes_with_nul().len()),
                 iovec!(value.as_ptr() as *const libc::c_void, value.len()),
             ]
-        })
-        .collect();
+        }).collect();
 
     jiov.append(&mut param_jiov);
 

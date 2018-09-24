@@ -711,13 +711,13 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
             );
 
             #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
-            let ips: Vec<net::Ipv4Addr> = unsafe {
-                slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count)
-            }.iter()
-                .map(|in_addr| u32::from_be(in_addr.s_addr))
-                .map(net::Ipv4Addr::from)
-                .filter(|ip| !ip.is_unspecified())
-                .collect();
+            let ips: Vec<net::Ipv4Addr> =
+                unsafe { slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count) }
+                    .iter()
+                    .map(|in_addr| u32::from_be(in_addr.s_addr))
+                    .map(net::Ipv4Addr::from)
+                    .filter(|ip| !ip.is_unspecified())
+                    .collect();
 
             Ok(Value::Ipv4Addrs(ips))
         }
@@ -734,12 +734,12 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
             );
 
             #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
-            let ips: Vec<net::Ipv6Addr> = unsafe {
-                slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count)
-            }.iter()
-                .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
-                .filter(|ip| !ip.is_unspecified())
-                .collect();
+            let ips: Vec<net::Ipv6Addr> =
+                unsafe { slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count) }
+                    .iter()
+                    .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
+                    .filter(|ip| !ip.is_unspecified())
+                    .collect();
 
             Ok(Value::Ipv6Addrs(ips))
         }

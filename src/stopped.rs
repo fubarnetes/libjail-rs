@@ -100,8 +100,7 @@ impl StoppedJail {
                     .map(|ip| match ip {
                         net::IpAddr::V4(ip4) => *ip4,
                         _ => panic!("unreachable"),
-                    })
-                    .collect(),
+                    }).collect(),
             ),
         );
 
@@ -114,8 +113,7 @@ impl StoppedJail {
                     .map(|ip| match ip {
                         net::IpAddr::V6(ip6) => *ip6,
                         _ => panic!("unreachable"),
-                    })
-                    .collect(),
+                    }).collect(),
             ),
         );
 

@@ -18,8 +18,7 @@ fn test_rctl_yes() {
             rctl::Resource::Wallclock,
             rctl::Limit::amount(1),
             rctl::Action::Signal(Signal::SIGKILL),
-        )
-        .start()
+        ).start()
         .expect("Could not start Jail");
 
     // this should hang until killed by the limit
