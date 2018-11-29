@@ -26,7 +26,7 @@ byteorder = "^1.2.3"
 failure = "~0.1.1"
 libc = "~0.2.41"
 sysctl = "~0.2.0"
-nix= "^0.11.0"
+nix= "^0.12.0"
 rctl = "0.0.3"
 
 [dev-dependencies]
