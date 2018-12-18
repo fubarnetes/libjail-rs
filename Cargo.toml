@@ -30,4 +30,4 @@ nix= "^0.12.0"
 rctl = "0.0.3"
 
 [dev-dependencies]
-prettytable-rs = "0.7.0"
+prettytable-rs = "0.8.0"
