@@ -1,4 +1,3 @@
-use nix::sys::signal::Signal;
 use process::Jailed;
 use rctl;
 use std::os::unix::process::ExitStatusExt;
@@ -17,7 +16,7 @@ fn test_rctl_yes() {
         .limit(
             rctl::Resource::Wallclock,
             rctl::Limit::amount(1),
-            rctl::Action::Signal(Signal::SIGKILL),
+            rctl::Action::Signal(rctl::Signal::SIGKILL),
         ).start()
         .expect("Could not start Jail");
 

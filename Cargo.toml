@@ -27,7 +27,7 @@ failure = "~0.1.1"
 libc = "~0.2.41"
 sysctl = "~0.2.0"
 nix= "^0.12.0"
-rctl = "0.0.3"
+rctl = "0.0.4"
 
 [dev-dependencies]
 prettytable-rs = "0.8.0"
