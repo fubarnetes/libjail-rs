@@ -1,0 +1,14 @@
+task:
+  freebsd_instance:
+    matrix:
+      image: freebsd-12-0-release-amd64
+      image: freebsd-11-2-release-amd64
+  install_script: |
+    pkg install -y curl
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+    . $HOME/.cargo/env
+  cargo_cache:
+    folder: $CARGO_HOME/registry
+  build_script: env PATH="$HOME/.cargo/bin:$PATH" cargo build
+  test_script: env PATH="$HOME/.cargo/bin:$PATH" cargo test
+  before_cache_script: rm -rf $CARGO_HOME/registry/index
