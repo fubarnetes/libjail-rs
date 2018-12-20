@@ -353,7 +353,8 @@ impl Value {
                 }
                 Ok(())
             }
-        }.map_err(|_| JailError::SerializeFailed)?;
+        }
+        .map_err(|_| JailError::SerializeFailed)?;
 
         Ok(bytes)
     }

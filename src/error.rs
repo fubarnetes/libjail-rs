@@ -48,10 +48,7 @@ pub enum JailError {
     #[fail(display = "Could not get string parameter length: {:?}", _0)]
     ParameterStringLengthError(#[cause] sysctl::SysctlError),
 
-    #[fail(
-        display = "Could not get structure parameter length: {:?}",
-        _0
-    )]
+    #[fail(display = "Could not get structure parameter length: {:?}", _0)]
     ParameterStructLengthError(#[cause] sysctl::SysctlError),
 
     #[fail(display = "Could not determine maximum number of IP addresses per family")]
@@ -68,9 +65,7 @@ pub enum JailError {
 
     #[fail(
         display = "Unexpected parameter type for '{}': expected {:?}, but got {:?}",
-        name,
-        expected,
-        got
+        name, expected, got
     )]
     UnexpectedParameterType {
         name: String,

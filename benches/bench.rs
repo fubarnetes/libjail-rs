@@ -122,7 +122,8 @@ fn iterate_100_jails(b: &mut Bencher) {
                 .name(format!("benchjail_iterate_{}", i))
                 .start()
                 .expect("failed to start jail")
-        }).collect();
+        })
+        .collect();
 
     b.iter(|| {
         for running in RunningJail::all() {

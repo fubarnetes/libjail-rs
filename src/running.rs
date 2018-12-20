@@ -430,7 +430,8 @@ impl RunningJail {
                 ErrorKind::Other,
                 "invalid return value from jail_attach",
             )),
-        }.map_err(JailError::JailAttachError)
+        }
+        .map_err(JailError::JailAttachError)
     }
 }
 

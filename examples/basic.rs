@@ -14,7 +14,8 @@ fn main() {
         .param(
             "osrelease",
             param::Value::String("FreeBSD 42.23".to_string()),
-        ).param("allow.raw_sockets", param::Value::Int(1))
+        )
+        .param("allow.raw_sockets", param::Value::Int(1))
         .param("allow.sysvipc", param::Value::Int(1));
 
     stopped.hostname = Some("testjail.example.org".to_string());
