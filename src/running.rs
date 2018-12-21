@@ -271,6 +271,9 @@ impl RunningJail {
     ///
     /// This can be used to clone the config from a RunningJail.
     ///
+    /// If RCTL is enabled, then all RCTL rules matching the RunningJail
+    /// subject will be saved.
+    ///
     /// # Examples
     ///
     /// ```
@@ -297,18 +300,20 @@ impl RunningJail {
         stopped.params = self.params()?;
 
         // Save RCTL rules
-        let name = self.name();
+        if rctl::State::check().is_enabled() {
+            let name = self.name();
 
-        if let Ok(name) = name {
-            let filter: rctl::Filter = rctl::Subject::jail_name(name).into();
-            for rctl::Rule {
-                subject: _,
-                resource,
-                limit,
-                action,
-            } in filter.rules().map_err(JailError::RctlError)?.into_iter()
-            {
-                stopped.limits.push((resource, limit, action));
+            if let Ok(name) = name {
+                let filter: rctl::Filter = rctl::Subject::jail_name(name).into();
+                for rctl::Rule {
+                    subject: _,
+                    resource,
+                    limit,
+                    action,
+                } in filter.rules().map_err(JailError::RctlError)?.into_iter()
+                {
+                    stopped.limits.push((resource, limit, action));
+                }
             }
         }
 
