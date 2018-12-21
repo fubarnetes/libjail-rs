@@ -1,9 +1,11 @@
-# [Unreleased] - ReleaseDate
+# Changelog
 
-## Added
+## [Unreleased] - ReleaseDate
+
+### Added
 * support for setting tunable jail parameters
 
-## Changed
+### Changed
 * examples/jls: fixed `nix` version mismatch with `rctl` crate
 * fixed jail teardown and save if RCTL not enabled
 * `RunningJail` now derives `Copy`.
@@ -11,14 +13,14 @@
 * updated rctl to 0.0.5
 * updated prettytable-rs to 0.8.0
 
-# 0.0.5
+## [0.0.5] - 2018-07-05
 
-## Added
+### Added
 * RCTL / RACCT support
 
-# 0.0.4
+## [0.0.4] - 2018-06-21
 
-## Added
+### Added
 * this Changelog
 
 * iteration over running jails
