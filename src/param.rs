@@ -36,6 +36,7 @@ pub enum Type {
     Ulong,
     Ipv4Addrs,
     Ipv6Addrs,
+    JailSys,
 }
 
 #[cfg(target_os = "freebsd")]
@@ -171,6 +172,21 @@ impl Type {
             _ => false,
         }
     }
+
+    /// Check if this type is a JailSys parameter
+    ///
+    /// # Example
+    /// ```
+    /// use jail::param::Type;
+    /// assert_eq!(Type::JailSys.is_jailsys(), true);
+    /// assert_eq!(Type::Int.is_jailsys(), false);
+    /// ```
+    pub fn is_jailsys(&self) -> bool {
+        match self {
+            Type::JailSys => true,
+            _ => false,
+        }
+    }
 }
 
 impl<'a> convert::From<&'a Value> for Type {
@@ -191,6 +207,7 @@ impl<'a> convert::From<&'a Value> for Type {
             Value::U32(_) => Type::U32,
             Value::Ipv4Addrs(_) => Type::Ipv4Addrs,
             Value::Ipv6Addrs(_) => Type::Ipv6Addrs,
+            Value::JailSys(_) => Type::JailSys,
         }
     }
 }
@@ -233,7 +250,54 @@ impl convert::Into<CtlType> for Type {
             Type::Ulong => CtlType::Ulong,
             Type::Ipv4Addrs => CtlType::Struct,
             Type::Ipv6Addrs => CtlType::Struct,
+            Type::JailSys => CtlType::Int,
         }
+    }
+}
+
+/// A Tri-State JailSys parameter value
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+pub enum JailSys {
+    Disable,
+    New,
+    Inherit,
+}
+
+impl convert::Into<u8> for &JailSys {
+    fn into(self) -> u8 {
+        match self {
+            JailSys::Disable => 0,
+            JailSys::New => 1,
+            JailSys::Inherit => 2,
+        }
+    }
+}
+
+impl convert::From<u8> for JailSys {
+    fn from(val: u8) -> Self {
+        match val {
+            0 => JailSys::Disable,
+            1 => JailSys::New,
+            2 => JailSys::Inherit,
+            _ => panic!("Invalid jailsys value"),
+        }
+    }
+}
+
+impl convert::Into<&'static str> for &JailSys {
+    fn into(self) -> &'static str {
+        match self {
+            JailSys::Disable => "disable",
+            JailSys::New => "new",
+            JailSys::Inherit => "inherit",
+        }
+    }
+}
+
+impl std::fmt::Display for JailSys {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s: &str = self.into();
+        write!(f, "{}", s)
     }
 }
 
@@ -280,6 +344,9 @@ pub enum Value {
     /// ]);
     /// ```
     Ipv6Addrs(Vec<net::Ipv6Addr>),
+
+    /// Represent a tri-state [JailSys] parameter.
+    JailSys(JailSys),
 }
 
 impl Value {
@@ -352,6 +419,10 @@ impl Value {
                     bytes.extend_from_slice(&addr.octets());
                 }
                 Ok(())
+            }
+            Value::JailSys(v) => {
+                let v: u8 = (&v).into();
+                bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_int>())
             }
         }
         .map_err(|_| JailError::SerializeFailed)?;
@@ -744,6 +815,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
 
             Ok(Value::Ipv6Addrs(ips))
         }
+        Type::JailSys => Ok(Value::JailSys(JailSys::from(value[0]))),
     }
 }
 
