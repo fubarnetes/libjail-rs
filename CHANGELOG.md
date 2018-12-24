@@ -11,6 +11,8 @@
 * fixed jail teardown and save if RCTL not enabled
 * `RunningJail` now derives `Copy`.
 * `RunningJail::jail_attach` is now public.
+* `RunningJail::save` now no longer saves the `vnet` parameter if it is set to
+  `inherit` (2). See #34.
 * updated rctl to 0.0.5
 * updated prettytable-rs to 0.8.0
 
