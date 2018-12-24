@@ -39,6 +39,8 @@ pub use stopped::StoppedJail;
 pub mod param;
 pub mod process;
 
+mod vimage;
+
 #[cfg(test)]
 mod tests;
 
