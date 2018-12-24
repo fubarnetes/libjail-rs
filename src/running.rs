@@ -317,6 +317,12 @@ impl RunningJail {
             }
         }
 
+        // Special-Case VNET. Non-VNET jails have the "vnet" parameter set to
+        // "inherit" (2).
+        if stopped.params.get("vnet") == Some(&param::Value::Int(2)) {
+            stopped.params.remove("vnet");
+        }
+
         Ok(stopped)
     }
 
