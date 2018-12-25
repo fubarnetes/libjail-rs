@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - ReleaseDate
+## [0.0.6] - 2018-12-25
 
 ### Added
 * support for setting tunable jail parameters

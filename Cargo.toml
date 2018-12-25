@@ -1,6 +1,6 @@
 [package]
 name = "jail"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["Fabian Freyer <fabian.freyer@physik.tu-berlin.de>"]
 description = "FreeBSD jail library"
 license = "BSD-3-Clause"
