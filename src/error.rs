@@ -51,6 +51,9 @@ pub enum JailError {
     #[fail(display = "Could not get structure parameter length: {:?}", _0)]
     ParameterStructLengthError(#[cause] sysctl::SysctlError),
 
+    #[fail(display = "Cannot set tunable parameter '{}' at runtime.", _0)]
+    ParameterTunableError(String),
+
     #[fail(display = "Could not determine maximum number of IP addresses per family")]
     JailMaxAfIpsFailed(#[cause] sysctl::SysctlError),
 
