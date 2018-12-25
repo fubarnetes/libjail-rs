@@ -88,42 +88,49 @@ impl StoppedJail {
             return Err(JailError::UnnamedButLimited);
         }
 
-        let ret = sys::jail_create(
-            &path,
-            self.name.as_ref().map(String::as_str),
-            self.hostname.as_ref().map(String::as_str),
-        ).map(RunningJail::from_jid)?;
+        let mut params = self.params.clone();
 
         // Set the IP Addresses
-        let ip4s = param::Value::Ipv4Addrs(
-            self.ips
-                .iter()
-                .filter(|ip| ip.is_ipv4())
-                .map(|ip| match ip {
-                    net::IpAddr::V4(ip4) => *ip4,
-                    _ => panic!("unreachable"),
-                })
-                .collect(),
+        params.insert(
+            "ip4.addr".into(),
+            param::Value::Ipv4Addrs(
+                self.ips
+                    .iter()
+                    .filter(|ip| ip.is_ipv4())
+                    .map(|ip| match ip {
+                        net::IpAddr::V4(ip4) => *ip4,
+                        _ => panic!("unreachable"),
+                    })
+                    .collect(),
+            ),
         );
 
-        let ip6s = param::Value::Ipv6Addrs(
-            self.ips
-                .iter()
-                .filter(|ip| ip.is_ipv6())
-                .map(|ip| match ip {
-                    net::IpAddr::V6(ip6) => *ip6,
-                    _ => panic!("unreachable"),
-                })
-                .collect(),
+        params.insert(
+            "ip6.addr".into(),
+            param::Value::Ipv6Addrs(
+                self.ips
+                    .iter()
+                    .filter(|ip| ip.is_ipv6())
+                    .map(|ip| match ip {
+                        net::IpAddr::V6(ip6) => *ip6,
+                        _ => panic!("unreachable"),
+                    })
+                    .collect(),
+            ),
         );
 
-        param::set(ret.jid, "ip4.addr", ip4s)?;
-        param::set(ret.jid, "ip6.addr", ip6s)?;
-
-        // Set remaining parameters
-        for (param, value) in self.params {
-            param::set(ret.jid, &param, value)?;
+        if let Some(ref name) = self.name {
+            params.insert("name".into(), param::Value::String(name.clone()));
         }
+
+        if let Some(ref hostname) = self.hostname {
+            params.insert(
+                "host.hostname".into(),
+                param::Value::String(hostname.clone()),
+            );
+        }
+
+        let ret = sys::jail_create(&path, params).map(RunningJail::from_jid)?;
 
         // Set resource limits
         if !self.limits.is_empty() {

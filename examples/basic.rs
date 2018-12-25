@@ -11,6 +11,10 @@ fn main() {
         .name("example_basic")
         .ip("127.0.1.1".parse().expect("couldn't parse IP Addr"))
         .ip("fe80::2".parse().expect("couldn't parse IP Addr"))
+        .param(
+            "osrelease",
+            param::Value::String("FreeBSD 42.23".to_string()),
+        )
         .param("allow.raw_sockets", param::Value::Int(1))
         .param("allow.sysvipc", param::Value::Int(1));
 

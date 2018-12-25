@@ -12,11 +12,23 @@ pub enum JailError {
     #[fail(display = "An IO Error occurred: {:?}", _0)]
     IoError(#[cause] io::Error),
 
-    #[fail(display = "jail_get syscall failed. The error message returned was: {}", _0)]
+    #[fail(
+        display = "jail_get syscall failed. The error message returned was: {}",
+        _0
+    )]
     JailGetError(String),
 
-    #[fail(display = "jail_set syscall failed. The error message returned was: {}", _0)]
+    #[fail(
+        display = "jail_set syscall failed. The error message returned was: {}",
+        _0
+    )]
     JailSetError(String),
+
+    #[fail(
+        display = "jail_attach syscall failed. The error message returned was: {}",
+        _0
+    )]
+    JailAttachError(#[cause] io::Error),
 
     #[fail(display = "invalid return code from jail_remove")]
     JailRemoveFailed,
@@ -39,10 +51,16 @@ pub enum JailError {
     #[fail(display = "Could not get structure parameter length: {:?}", _0)]
     ParameterStructLengthError(#[cause] sysctl::SysctlError),
 
+    #[fail(display = "Cannot set tunable parameter '{}' at runtime.", _0)]
+    ParameterTunableError(String),
+
     #[fail(display = "Could not determine maximum number of IP addresses per family")]
     JailMaxAfIpsFailed(#[cause] sysctl::SysctlError),
 
-    #[fail(display = "Parameter string length returned ('{}') is not a number.", _0)]
+    #[fail(
+        display = "Parameter string length returned ('{}') is not a number.",
+        _0
+    )]
     ParameterLengthNaN(String),
 
     #[fail(display = "Parameter type not supported: {:?}", _0)]
@@ -50,9 +68,7 @@ pub enum JailError {
 
     #[fail(
         display = "Unexpected parameter type for '{}': expected {:?}, but got {:?}",
-        name,
-        expected,
-        got
+        name, expected, got
     )]
     UnexpectedParameterType {
         name: String,

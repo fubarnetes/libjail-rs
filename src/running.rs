@@ -1,3 +1,4 @@
+use libc;
 use param;
 use rctl;
 use sys;
@@ -5,11 +6,12 @@ use JailError;
 use StoppedJail;
 
 use std::collections::HashMap;
+use std::io::{Error, ErrorKind};
 use std::net;
 use std::path;
 
 /// Represents a running jail.
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 #[cfg(target_os = "freebsd")]
 pub struct RunningJail {
     /// The `jid` of the jail
@@ -248,10 +250,18 @@ impl RunningJail {
         sys::jail_remove(self.jid)?;
 
         // Tear down RCTL rules
-        if &name != "" {
+        {
+            if &name == "" {
+                return Ok(());
+            }
+
             let filter: rctl::Filter = rctl::Subject::jail_name(name).into();
-            filter.remove_rules().map_err(JailError::RctlError)?;
-        }
+            match filter.remove_rules() {
+                Ok(_) => Ok(()),
+                Err(rctl::Error::InvalidKernelState(_)) => Ok(()),
+                Err(e) => Err(JailError::RctlError(e)),
+            }
+        }?;
 
         Ok(())
     }
@@ -260,6 +270,9 @@ impl RunningJail {
     /// RunningJail.
     ///
     /// This can be used to clone the config from a RunningJail.
+    ///
+    /// If RCTL is enabled, then all RCTL rules matching the RunningJail
+    /// subject will be saved.
     ///
     /// # Examples
     ///
@@ -287,19 +300,27 @@ impl RunningJail {
         stopped.params = self.params()?;
 
         // Save RCTL rules
-        let name = self.name();
+        if rctl::State::check().is_enabled() {
+            let name = self.name();
 
-        if let Ok(name) = name {
-            let filter: rctl::Filter = rctl::Subject::jail_name(name).into();
-            for rctl::Rule {
-                subject: _,
-                resource,
-                limit,
-                action,
-            } in filter.rules().map_err(JailError::RctlError)?.into_iter()
-            {
-                stopped.limits.push((resource, limit, action));
+            if let Ok(name) = name {
+                let filter: rctl::Filter = rctl::Subject::jail_name(name).into();
+                for rctl::Rule {
+                    subject: _,
+                    resource,
+                    limit,
+                    action,
+                } in filter.rules().map_err(JailError::RctlError)?.into_iter()
+                {
+                    stopped.limits.push((resource, limit, action));
+                }
             }
+        }
+
+        // Special-Case VNET. Non-VNET jails have the "vnet" parameter set to
+        // "inherit" (2).
+        if stopped.params.get("vnet") == Some(&param::Value::Int(2)) {
+            stopped.params.remove("vnet");
         }
 
         Ok(stopped)
@@ -341,6 +362,7 @@ impl RunningJail {
     /// ```
     /// # use jail::StoppedJail;
     /// # let running = StoppedJail::new("/rescue")
+    /// #     .name("testjail_restart")
     /// #     .start()
     /// #     .unwrap();
     ///
@@ -407,6 +429,60 @@ impl RunningJail {
         rctl::Subject::jail_name(self.name()?)
             .usage()
             .map_err(JailError::RctlError)
+    }
+
+    /// Jail the current process into the given jail.
+    pub fn attach(&self) -> Result<(), JailError> {
+        let ret = unsafe { libc::jail_attach(self.jid) };
+        match ret {
+            0 => Ok(()),
+            -1 => Err(Error::last_os_error()),
+            _ => Err(Error::new(
+                ErrorKind::Other,
+                "invalid return value from jail_attach",
+            )),
+        }
+        .map_err(JailError::JailAttachError)
+    }
+
+    /// Clear the `persist` flag on the Jail.
+    ///
+    /// The kernel keeps track of jails using a per-jail resource counter.
+    /// Every running process inside the jail increments this resource counter.
+    /// The `persist` flag additionally increments the resource counter so that
+    /// the jail will not be removed once all processes within the jail will
+    /// have terminated.
+    ///
+    /// Jails started with [StoppedJail::start] start with this flag set, since
+    /// they would otherwise be immediately cleaned up again by the kernel.
+    /// This method clears the persist flag and therefore delegates cleanup to
+    /// the kernel once all jailed processes have terminated.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::process::Command;
+    /// use jail::process::Jailed;
+    ///
+    /// let jail = jail::StoppedJail::new("/rescue")
+    ///      .name("testjail_defer_cleanup")
+    ///      .start()
+    ///      .expect("could not start jail");
+    ///
+    /// let mut child = Command::new("/sleep")
+    ///              .arg("3")
+    ///              .jail(&jail)
+    ///              .spawn()
+    ///              .expect("Failed to execute command");
+    ///
+    /// jail.defer_cleanup().expect("could not defer cleanup");
+    ///
+    /// child.wait().expect("Could not wait for child.");
+    ///
+    /// jail.kill().expect_err("Jail should be dead by now.");
+    /// ```
+    pub fn defer_cleanup(&self) -> Result<(), JailError> {
+        sys::jail_clearpersist(self.jid)
     }
 }
 

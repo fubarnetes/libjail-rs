@@ -14,7 +14,7 @@ use sys::JailFlags;
 use JailError;
 
 use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
-use sysctl::{Ctl, CtlType, CtlValue};
+use sysctl::{Ctl, CtlFlags, CtlType, CtlValue};
 
 use nix;
 
@@ -52,7 +52,7 @@ impl Type {
     /// assert_eq!(Type::of_param("ip6.addr").unwrap(), Type::Ipv6Addrs);
     /// ```
     pub fn of_param(name: &str) -> Result<Type, JailError> {
-        let (ctl_type, _) = info(name)?;
+        let (ctl_type, _, _) = info(name)?;
 
         ctltype_to_type(name, ctl_type)
     }
@@ -302,6 +302,63 @@ impl Value {
         self.into()
     }
 
+    /// Format the value into a vector of bytes as expected by the jail
+    /// parameter API.
+    pub fn as_bytes(self) -> Result<Vec<u8>, JailError> {
+        let mut bytes: Vec<u8> = vec![];
+
+        // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
+        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
+        match self {
+            Value::String(s) => {
+                bytes = CString::new(s)
+                    .expect("Could not create CString from value")
+                    .to_bytes_with_nul()
+                    .to_vec();
+                Ok(())
+            }
+            Value::U8(v) => bytes.write_u8(v),
+            Value::S8(v) => bytes.write_i8(v),
+            Value::U16(v) => bytes.write_u16::<LittleEndian>(v),
+            Value::U32(v) => bytes.write_u32::<LittleEndian>(v),
+            Value::U64(v) => bytes.write_u64::<LittleEndian>(v),
+            Value::S16(v) => bytes.write_i16::<LittleEndian>(v),
+            Value::S32(v) => bytes.write_i32::<LittleEndian>(v),
+            Value::S64(v) => bytes.write_i64::<LittleEndian>(v),
+            Value::Int(v) => {
+                bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_int>())
+            }
+            Value::Long(v) => {
+                bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_long>())
+            }
+            Value::Uint(v) => {
+                bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_uint>())
+            }
+            Value::Ulong(v) => {
+                bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_ulong>())
+            }
+            Value::Ipv4Addrs(addrs) => {
+                for addr in addrs {
+                    let s_addr = nix::sys::socket::Ipv4Addr::from_std(&addr).0.s_addr;
+                    let host_u32 = u32::from_be(s_addr);
+                    bytes
+                        .write_u32::<NetworkEndian>(host_u32)
+                        .map_err(|_| JailError::SerializeFailed)?;
+                }
+                Ok(())
+            }
+            Value::Ipv6Addrs(addrs) => {
+                for addr in addrs {
+                    bytes.extend_from_slice(&addr.octets());
+                }
+                Ok(())
+            }
+        }
+        .map_err(|_| JailError::SerializeFailed)?;
+
+        Ok(bytes)
+    }
+
     /// Attempt to unpack the Vector of IPv4 addresses contained in this value
     ///
     /// # Example
@@ -465,12 +522,13 @@ impl Value {
 }
 
 #[cfg(target_os = "freebsd")]
-fn info(name: &str) -> Result<(CtlType, usize), JailError> {
+fn info(name: &str) -> Result<(CtlType, CtlFlags, usize), JailError> {
     // Get parameter type
     let ctlname = format!("security.jail.param.{}", name);
 
     let ctl = Ctl::new(&ctlname).map_err(|_| JailError::NoSuchParameter(name.to_string()))?;
 
+    let flags = ctl.flags().map_err(JailError::SysctlError)?;
     let paramtype = ctl.value_type().map_err(JailError::ParameterTypeError)?;
 
     let typesize = match paramtype {
@@ -510,7 +568,7 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
         _ => return Err(JailError::ParameterTypeUnsupported(paramtype)),
     };
 
-    Ok((paramtype, typesize))
+    Ok((paramtype, flags, typesize))
 }
 
 #[cfg(target_os = "freebsd")]
@@ -561,7 +619,7 @@ fn ctltype_to_type(name: &str, ctl_type: CtlType) -> Result<Type, JailError> {
 /// ```
 #[cfg(target_os = "freebsd")]
 pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
-    let (paramtype, typesize) = info(name)?;
+    let (paramtype, _, typesize) = info(name)?;
 
     // ip4.addr and ip6.addr are arrays, which can be up to
     // security.jail.jail_max_af_ips long:
@@ -655,13 +713,13 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
             );
 
             #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
-            let ips: Vec<net::Ipv4Addr> = unsafe {
-                slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count)
-            }.iter()
-                .map(|in_addr| u32::from_be(in_addr.s_addr))
-                .map(net::Ipv4Addr::from)
-                .filter(|ip| !ip.is_unspecified())
-                .collect();
+            let ips: Vec<net::Ipv4Addr> =
+                unsafe { slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count) }
+                    .iter()
+                    .map(|in_addr| u32::from_be(in_addr.s_addr))
+                    .map(net::Ipv4Addr::from)
+                    .filter(|ip| !ip.is_unspecified())
+                    .collect();
 
             Ok(Value::Ipv4Addrs(ips))
         }
@@ -678,12 +736,12 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
             );
 
             #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
-            let ips: Vec<net::Ipv6Addr> = unsafe {
-                slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count)
-            }.iter()
-                .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
-                .filter(|ip| !ip.is_unspecified())
-                .collect();
+            let ips: Vec<net::Ipv6Addr> =
+                unsafe { slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count) }
+                    .iter()
+                    .map(|in6_addr| net::Ipv6Addr::from(in6_addr.s6_addr))
+                    .filter(|ip| !ip.is_unspecified())
+                    .collect();
 
             Ok(Value::Ipv6Addrs(ips))
         }
@@ -697,7 +755,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
 /// use jail::param;
 /// # use jail::StoppedJail;
 /// # let jail = StoppedJail::new("/rescue")
-/// #     .name("testjail_getparam")
+/// #     .name("testjail_setparam")
 /// #     .start()
 /// #     .expect("could not start jail");
 /// # let jid = jail.jid;
@@ -710,60 +768,46 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
 /// # assert_eq!(readback, param::Value::Int(1));
 /// # jail.kill().expect("could not stop jail");
 /// ```
+///
+/// Tunable parameters cannot be set:
+/// ```
+/// use jail::{param, JailError};
+/// # use jail::StoppedJail;
+/// # let jail = StoppedJail::new("/rescue")
+/// #     .name("testjail_setparam_tunable")
+/// #     .start()
+/// #     .expect("could not start jail");
+/// # let jid = jail.jid;
+/// # let res =
+/// param::set( jid, "osrelease", param::Value::String("CantTouchThis".into()))
+///     .expect_err("Setting a tunable parameter on a running jail succeeded");
+/// # match res {
+/// #     JailError::ParameterTunableError(tun) => {
+/// #         assert_eq!(tun, "osrelease")
+/// #     },
+/// #     e => {
+/// #         jail.kill().expect("could not stop jail");
+/// #         panic!("Wrong error returned");
+/// #     },
+/// # }
+/// # jail.kill().expect("could not stop jail");
+/// ```
 pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
-    let (ctltype, _) = info(name)?;
+    let (ctltype, ctl_flags, _) = info(name)?;
+
+    // Check if this is a tunable.
+    if ctl_flags.contains(CtlFlags::TUN) {
+        return Err(JailError::ParameterTunableError(name.into()));
+    }
 
     let paramname = CString::new(name).expect("Could not convert parameter name to CString");
 
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
-    let mut bytes: Vec<u8> = vec![];
 
     let paramtype: Type = (&value).into();
     assert_eq!(ctltype, paramtype.into());
 
-    // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
-    #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
-    match value {
-        Value::String(s) => {
-            bytes = CString::new(s)
-                .expect("Could not create CString from value")
-                .to_bytes_with_nul()
-                .to_vec();
-            Ok(())
-        }
-        Value::U8(v) => bytes.write_u8(v),
-        Value::S8(v) => bytes.write_i8(v),
-        Value::U16(v) => bytes.write_u16::<LittleEndian>(v),
-        Value::U32(v) => bytes.write_u32::<LittleEndian>(v),
-        Value::U64(v) => bytes.write_u64::<LittleEndian>(v),
-        Value::S16(v) => bytes.write_i16::<LittleEndian>(v),
-        Value::S32(v) => bytes.write_i32::<LittleEndian>(v),
-        Value::S64(v) => bytes.write_i64::<LittleEndian>(v),
-        Value::Int(v) => bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_int>()),
-        Value::Long(v) => bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_long>()),
-        Value::Uint(v) => {
-            bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_uint>())
-        }
-        Value::Ulong(v) => {
-            bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_ulong>())
-        }
-        Value::Ipv4Addrs(addrs) => {
-            for addr in addrs {
-                let s_addr = nix::sys::socket::Ipv4Addr::from_std(&addr).0.s_addr;
-                let host_u32 = u32::from_be(s_addr);
-                bytes
-                    .write_u32::<NetworkEndian>(host_u32)
-                    .map_err(|_| JailError::SerializeFailed)?;
-            }
-            Ok(())
-        }
-        Value::Ipv6Addrs(addrs) => {
-            for addr in addrs {
-                bytes.extend_from_slice(&addr.octets());
-            }
-            Ok(())
-        }
-    }.map_err(|_| JailError::SerializeFailed)?;
+    let mut bytes = value.as_bytes()?;
 
     let mut jiov: Vec<libc::iovec> = vec![
         iovec!(b"jid\0"),
@@ -839,10 +883,6 @@ pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
         .filter(|name| name != "path")
         .filter(|name| name != "ip6.addr")
         .filter(|name| name != "ip4.addr")
-        // the following are tunables that need to be set on start
-        // FIXME: we should really pass these to jail_create
-        .filter(|name| name != "osreldate")
-        .filter(|name| name != "osrelease")
         // get parameters
         .filter_map(|name| {
             let value = get(jid, &name);

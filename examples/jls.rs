@@ -4,9 +4,7 @@ extern crate jail;
 extern crate prettytable;
 
 use jail::RunningJail;
-use prettytable::cell::Cell;
-use prettytable::row::Row;
-use prettytable::Table;
+use prettytable::{Cell, Row, Table};
 
 fn main() {
     let mut table = Table::new();

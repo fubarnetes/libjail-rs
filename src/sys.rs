@@ -1,5 +1,6 @@
 use libc;
 
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::ptr;
@@ -7,6 +8,7 @@ use std::str;
 
 use std::path;
 
+use param;
 use JailError;
 
 macro_rules! iovec {
@@ -50,35 +52,44 @@ bitflags! {
 #[cfg(target_os = "freebsd")]
 pub fn jail_create(
     path: &path::Path,
-    name: Option<&str>,
-    hostname: Option<&str>,
+    params: HashMap<String, param::Value>,
 ) -> Result<i32, JailError> {
-    let pathstr = CString::new(path.as_os_str().to_str().unwrap()).unwrap();
+    let pathstr = CString::new(path.as_os_str().to_str().unwrap())
+        .unwrap()
+        .into_bytes_with_nul();
+    let path_len = pathstr.len();
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
     let mut jiov = vec![
         iovec!(b"path\0"),
-        iovec!(pathstr.as_ptr(), pathstr.as_bytes().len() + 1),
+        iovec!(pathstr.as_ptr(), path_len),
+        iovec!(b"errmsg\0"),
+        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
         iovec!(b"persist\0"),
         iovec!(),
     ];
 
-    if let Some(name) = name {
-        jiov.push(iovec!(b"name\0"));
-        let namebuf = CString::new(name).unwrap();
-        let len = namebuf.as_bytes().len() + 1;
-        jiov.push(iovec!(namebuf.into_bytes_with_nul().as_ptr(), len));
-    }
+    let parameter_array: HashMap<CString, Vec<u8>> = params
+        .iter()
+        .filter_map(|(key, value)| {
+            Some((
+                CString::new(key.clone()).ok()?,
+                value.clone().as_bytes().ok()?,
+            ))
+        })
+        .collect();
 
-    if let Some(hostname) = hostname {
-        jiov.push(iovec!(b"host.hostname\0"));
-        let namebuf = CString::new(hostname).unwrap();
-        let len = namebuf.as_bytes().len() + 1;
-        jiov.push(iovec!(namebuf.into_bytes_with_nul().as_ptr(), len));
-    }
+    let mut param_jiov: Vec<libc::iovec> = parameter_array
+        .iter()
+        .flat_map(|(key, value)| {
+            vec![
+                iovec!(key.as_ptr(), key.as_bytes_with_nul().len()),
+                iovec!(value.as_ptr() as *const libc::c_void, value.len()),
+            ]
+        })
+        .collect();
 
-    jiov.push(iovec!(b"errmsg\0"));
-    jiov.push(iovec!(errmsg.as_mut_ptr(), errmsg.len()));
+    jiov.append(&mut param_jiov);
 
     let jid = unsafe {
         libc::jail_set(
@@ -98,6 +109,40 @@ pub fn jail_create(
             _ => Err(JailError::JailSetError(err)),
         },
         _ => Ok(jid),
+    }
+}
+
+/// Clear the persist flag
+#[cfg(target_os = "freebsd")]
+pub fn jail_clearpersist(jid: i32) -> Result<(), JailError> {
+    let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
+    let mut jiov: Vec<libc::iovec> = vec![
+        iovec!(b"jid\0"),
+        iovec!(&jid as *const _, mem::size_of::<i32>()),
+        iovec!(b"errmsg\0"),
+        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
+        iovec!(b"nopersist\0"),
+        iovec!(),
+    ];
+
+    let jid = unsafe {
+        libc::jail_set(
+            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov.len() as u32,
+            JailFlags::UPDATE.bits,
+        )
+    };
+
+    let err = unsafe { CStr::from_ptr(errmsg.as_ptr() as *mut i8) }
+        .to_string_lossy()
+        .to_string();
+
+    match jid {
+        e if e < 0 => match errmsg[0] {
+            0 => Err(JailError::from_errno()),
+            _ => Err(JailError::JailSetError(err)),
+        },
+        _ => Ok(()),
     }
 }
 
@@ -197,17 +242,20 @@ mod tests {
 
     #[test]
     fn create_remove() {
-        let jid = jail_create(Path::new("/rescue"), Some("testjail_create_remove"), None)
-            .expect("could not start jail");
-
+        let mut params: HashMap<String, param::Value> = HashMap::new();
+        params.insert(
+            "name".into(),
+            param::Value::String("testjail_create_remove".into()),
+        );
+        let jid = jail_create(Path::new("/rescue"), params).expect("could not start jail");
         jail_remove(jid).expect("could not remove jail");
     }
 
     #[test]
     fn id() {
-        let target_jid = jail_create(Path::new("/rescue"), Some("testjail_getid"), None)
-            .expect("could not start jail");
-
+        let mut params: HashMap<String, param::Value> = HashMap::new();
+        params.insert("name".into(), param::Value::String("testjail_getid".into()));
+        let target_jid = jail_create(Path::new("/rescue"), params).expect("could not start jail");
         let jid = jail_getid("testjail_getid").expect("could not get ID of test jail");
         assert_eq!(jid, target_jid);
         jail_remove(jid).expect("could not remove jail");
