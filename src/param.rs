@@ -14,7 +14,7 @@ use sys::JailFlags;
 use JailError;
 
 use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
-use sysctl::{Ctl, CtlType, CtlValue};
+use sysctl::{Ctl, CtlFlags, CtlType, CtlValue};
 
 use nix;
 
@@ -52,7 +52,7 @@ impl Type {
     /// assert_eq!(Type::of_param("ip6.addr").unwrap(), Type::Ipv6Addrs);
     /// ```
     pub fn of_param(name: &str) -> Result<Type, JailError> {
-        let (ctl_type, _) = info(name)?;
+        let (ctl_type, _, _) = info(name)?;
 
         ctltype_to_type(name, ctl_type)
     }
@@ -522,12 +522,13 @@ impl Value {
 }
 
 #[cfg(target_os = "freebsd")]
-fn info(name: &str) -> Result<(CtlType, usize), JailError> {
+fn info(name: &str) -> Result<(CtlType, CtlFlags, usize), JailError> {
     // Get parameter type
     let ctlname = format!("security.jail.param.{}", name);
 
     let ctl = Ctl::new(&ctlname).map_err(|_| JailError::NoSuchParameter(name.to_string()))?;
 
+    let flags = ctl.flags().map_err(JailError::SysctlError)?;
     let paramtype = ctl.value_type().map_err(JailError::ParameterTypeError)?;
 
     let typesize = match paramtype {
@@ -567,7 +568,7 @@ fn info(name: &str) -> Result<(CtlType, usize), JailError> {
         _ => return Err(JailError::ParameterTypeUnsupported(paramtype)),
     };
 
-    Ok((paramtype, typesize))
+    Ok((paramtype, flags, typesize))
 }
 
 #[cfg(target_os = "freebsd")]
@@ -618,7 +619,7 @@ fn ctltype_to_type(name: &str, ctl_type: CtlType) -> Result<Type, JailError> {
 /// ```
 #[cfg(target_os = "freebsd")]
 pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
-    let (paramtype, typesize) = info(name)?;
+    let (paramtype, _, typesize) = info(name)?;
 
     // ip4.addr and ip6.addr are arrays, which can be up to
     // security.jail.jail_max_af_ips long:
@@ -754,7 +755,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
 /// use jail::param;
 /// # use jail::StoppedJail;
 /// # let jail = StoppedJail::new("/rescue")
-/// #     .name("testjail_getparam")
+/// #     .name("testjail_setparam")
 /// #     .start()
 /// #     .expect("could not start jail");
 /// # let jid = jail.jid;
@@ -767,8 +768,37 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
 /// # assert_eq!(readback, param::Value::Int(1));
 /// # jail.kill().expect("could not stop jail");
 /// ```
+///
+/// Tunable parameters cannot be set:
+/// ```
+/// use jail::{param, JailError};
+/// # use jail::StoppedJail;
+/// # let jail = StoppedJail::new("/rescue")
+/// #     .name("testjail_setparam_tunable")
+/// #     .start()
+/// #     .expect("could not start jail");
+/// # let jid = jail.jid;
+/// # let res =
+/// param::set( jid, "osrelease", param::Value::String("CantTouchThis".into()))
+///     .expect_err("Setting a tunable parameter on a running jail succeeded");
+/// # match res {
+/// #     JailError::ParameterTunableError(tun) => {
+/// #         assert_eq!(tun, "osrelease")
+/// #     },
+/// #     e => {
+/// #         jail.kill().expect("could not stop jail");
+/// #         panic!("Wrong error returned");
+/// #     },
+/// # }
+/// # jail.kill().expect("could not stop jail");
+/// ```
 pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
-    let (ctltype, _) = info(name)?;
+    let (ctltype, ctl_flags, _) = info(name)?;
+
+    // Check if this is a tunable.
+    if ctl_flags.contains(CtlFlags::TUN) {
+        return Err(JailError::ParameterTunableError(name.into()));
+    }
 
     let paramname = CString::new(name).expect("Could not convert parameter name to CString");
 
