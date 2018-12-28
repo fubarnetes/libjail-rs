@@ -24,6 +24,12 @@ macro_rules! iovec {
             iov_len: $name.len(),
         }
     };
+    (mut $name:expr) => {
+        libc::iovec {
+            iov_base: $name.as_mut_ptr() as *mut libc::c_void,
+            iov_len: $name.len(),
+        }
+    };
     () => {
         libc::iovec {
             iov_base: ptr::null::<libc::c_void>() as *mut libc::c_void,
@@ -57,14 +63,13 @@ pub fn jail_create(
     let pathstr = CString::new(path.as_os_str().to_str().unwrap())
         .unwrap()
         .into_bytes_with_nul();
-    let path_len = pathstr.len();
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
     let mut jiov = vec![
         iovec!(b"path\0"),
-        iovec!(pathstr.as_ptr(), path_len),
+        iovec!(pathstr),
         iovec!(b"errmsg\0"),
-        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
+        iovec!(mut errmsg),
         iovec!(b"persist\0"),
         iovec!(),
     ];
