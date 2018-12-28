@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+* example showing how to query RCTL usage.
+
 ### Changed
 
 * Published `RunningJails` as `RunningJailIter`
