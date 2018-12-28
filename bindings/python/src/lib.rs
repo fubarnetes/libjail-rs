@@ -1,4 +1,4 @@
-#![feature(proc_macro, proc_macro_path_invoc, specialization, const_fn)]
+#![feature(specialization, const_fn)]
 extern crate jail;
 extern crate pyo3;
 extern crate rctl;
@@ -6,24 +6,26 @@ extern crate rctl;
 use std::collections::HashMap;
 
 use pyo3::prelude::*;
-use pyo3::py::{class, methods, modinit};
+use pyo3::types::{PyDict, PyInt, PyString};
+use pyo3::PyObjectWithToken;
+use pyo3::{exceptions, PyDowncastError};
 
 use jail as native;
 
-#[class]
+#[pyclass]
 struct JailError {
     inner: native::JailError,
     token: PyToken,
 }
 
-#[methods]
+#[pymethods]
 impl JailError {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("{}", self.inner))
     }
 }
 
-#[class]
+#[pyclass]
 struct RunningJail {
     inner: native::RunningJail,
     // As Python keeps its own reference counter, and we can't be sure that
@@ -33,7 +35,7 @@ struct RunningJail {
     token: PyToken,
 }
 
-#[methods]
+#[pymethods]
 impl RunningJail {
     #[new]
     fn __new__(obj: &PyRawObject, jid: i32) -> PyResult<()> {
@@ -60,7 +62,7 @@ impl RunningJail {
         Ok(self
             .inner
             .ips()
-            .map_err(|_| exc::SystemError::new("Could not get IP Addresses"))?
+            .map_err(|_| exceptions::SystemError::py_err("Could not get IP Addresses"))?
             .iter()
             .map(|addr| format!("{}", addr))
             .collect())
@@ -73,7 +75,7 @@ impl RunningJail {
         Ok(self
             .inner
             .params()
-            .map_err(|_| exc::SystemError::new("Could not get parameters"))?
+            .map_err(|_| exceptions::SystemError::py_err("Could not get parameters"))?
             .iter()
             .filter_map(|(key, value)| {
                 let object = match value {
@@ -105,7 +107,7 @@ impl RunningJail {
     /// resource limits, etc.
     fn stop(&mut self) -> PyResult<Py<StoppedJail>> {
         if self.dead {
-            return Err(exc::ValueError::new(
+            return Err(exceptions::ValueError::py_err(
                 "The RunningJail instance is no longer live",
             ));
         }
@@ -114,7 +116,7 @@ impl RunningJail {
             .inner
             .clone()
             .stop()
-            .map_err(|_| exc::SystemError::new("Jail stop failed"))?;
+            .map_err(|_| exceptions::SystemError::py_err("Jail stop failed"))?;
         self.dead = true;
         self.py().init(|token| StoppedJail { inner, token })
     }
@@ -122,7 +124,7 @@ impl RunningJail {
     /// Kill the Jail.
     fn kill(&mut self) -> PyResult<()> {
         if self.dead {
-            return Err(exc::ValueError::new(
+            return Err(exceptions::ValueError::py_err(
                 "The RunningJail instance is no longer live",
             ));
         }
@@ -130,7 +132,7 @@ impl RunningJail {
         self.inner
             .clone()
             .kill()
-            .map_err(|_| exc::SystemError::new("Jail stop failed"))?;
+            .map_err(|_| exceptions::SystemError::py_err("Jail stop failed"))?;
         self.dead = true;
         Ok(())
     }
@@ -139,7 +141,7 @@ impl RunningJail {
     #[getter]
     fn get_racct_usage(&self) -> PyResult<HashMap<String, usize>> {
         if self.dead {
-            return Err(exc::ValueError::new(
+            return Err(exceptions::ValueError::py_err(
                 "The RunningJail instance is no longer live",
             ));
         }
@@ -147,22 +149,25 @@ impl RunningJail {
         let usage = self.inner.racct_statistics();
         let usage_map = usage.map_err(|e| match e {
             native::JailError::RctlError(rctl::Error::InvalidKernelState(s)) => match s {
-                rctl::State::Disabled => exc::SystemError::new(
+                rctl::State::Disabled => exceptions::SystemError::py_err(
                     "Resource accounting is disabled. To enable resource \
                      accounting, set the `kern.racct.enable` tunable to 1.",
                 ),
-                rctl::State::NotPresent => exc::SystemError::new(
+                rctl::State::NotPresent => exceptions::SystemError::py_err(
                     "Resource accounting is not enabled in the kernel. \
                      This feature requires the kernel to be compiled with \
                      `OPTION RACCT` set. Current GENERIC kernels should \
                      have this option set.",
                 ),
-                rctl::State::Enabled => exc::SystemError::new(
+                rctl::State::Enabled => exceptions::SystemError::py_err(
                     "rctl::Error::InvalidKernelState returned but state \
                      is enabled. This really shouldn't happen.",
                 ),
+                rctl::State::Jailed => exceptions::SystemError::py_err(
+                    "Resource accounting isn't available in a jail.",
+                ),
             },
-            _ => exc::SystemError::new("Could not get RACCT accounting information"),
+            _ => exceptions::SystemError::py_err("Could not get RACCT accounting information"),
         })?;
 
         Ok(usage_map
@@ -172,17 +177,19 @@ impl RunningJail {
     }
 
     fn attach(&self) -> PyResult<()> {
-        self.attach()
-            .map_err(|_| exc::SystemError::new("jail_attach failed"))
+        self.inner
+            .attach()
+            .map_err(|_| exceptions::SystemError::py_err("jail_attach failed"))
     }
 
     fn defer_cleanup(&self) -> PyResult<()> {
-        self.defer_cleanup()
-            .map_err(|_| exc::SystemError::new("Could not clear persist flag"))
+        self.inner
+            .defer_cleanup()
+            .map_err(|_| exceptions::SystemError::py_err("Could not clear persist flag"))
     }
 }
 
-#[class]
+#[pyclass]
 struct StoppedJail {
     inner: native::StoppedJail,
     token: PyToken,
@@ -194,7 +201,7 @@ fn parameter_hashmap(dict: &PyDict) -> PyResult<HashMap<String, native::param::V
         .map(|(key, value)| {
             let key: PyResult<&PyString> = key
                 .try_into()
-                .map_err(|_| exc::TypeError::new("Parameter key must be a string"));
+                .map_err(|_| exceptions::TypeError::py_err("Parameter key must be a string"));
             let key: PyResult<String> = key.and_then(|k| k.extract());
 
             let py_string: Result<&PyString, PyDowncastError> = value.try_into();
@@ -205,7 +212,7 @@ fn parameter_hashmap(dict: &PyDict) -> PyResult<HashMap<String, native::param::V
             } else if let Ok(num) = py_num {
                 num.extract().map(native::param::Value::Int)
             } else {
-                Err(exc::TypeError::new(
+                Err(exceptions::TypeError::py_err(
                     "Only string and integer parameters are supported",
                 ))
             };
@@ -226,7 +233,7 @@ fn parameter_hashmap(dict: &PyDict) -> PyResult<HashMap<String, native::param::V
     Ok(converted.into_iter().map(Result::unwrap).collect())
 }
 
-#[methods]
+#[pymethods]
 impl StoppedJail {
     #[new]
     fn __new__(
@@ -292,7 +299,7 @@ impl StoppedJail {
             .inner
             .clone()
             .start()
-            .map_err(|_| exc::SystemError::new("Jail start failed"))?;
+            .map_err(|_| exceptions::SystemError::py_err("Jail start failed"))?;
         self.py().init(|token| RunningJail {
             inner,
             dead: false,
@@ -301,8 +308,8 @@ impl StoppedJail {
     }
 }
 
-#[modinit(_jail)]
-fn init_mod(_py: Python, m: &PyModule) -> PyResult<()> {
+#[pymodinit(_jail)]
+fn jail_modinit(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<RunningJail>()?;
     m.add_class::<StoppedJail>()?;
     m.add_class::<JailError>()?;

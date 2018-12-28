@@ -17,5 +17,5 @@ rctl = "^0"
 path = "../../"
 
 [dependencies.pyo3]
-version = "0.2"
+version = "0.5"
 features = ["extension-module"]
