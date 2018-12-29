@@ -18,26 +18,6 @@ use sysctl::{Ctl, CtlFlags, CtlType, CtlValue};
 
 use nix;
 
-/// An enum representing the type of a parameter.
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
-pub enum Type {
-    String,
-    U8,
-    U16,
-    U32,
-    U64,
-    S8,
-    S16,
-    S32,
-    S64,
-    Int,
-    Long,
-    Uint,
-    Ulong,
-    Ipv4Addrs,
-    Ipv6Addrs,
-}
-
 #[cfg(target_os = "freebsd")]
 impl Type {
     /// Get a parameter type from the name
@@ -173,28 +153,6 @@ impl Type {
     }
 }
 
-impl<'a> convert::From<&'a Value> for Type {
-    fn from(t: &'a Value) -> Type {
-        match t {
-            Value::Int(_) => Type::Int,
-            Value::String(_) => Type::String,
-            Value::S64(_) => Type::S64,
-            Value::Uint(_) => Type::Uint,
-            Value::Long(_) => Type::Long,
-            Value::Ulong(_) => Type::Ulong,
-            Value::U64(_) => Type::U64,
-            Value::U8(_) => Type::U8,
-            Value::U16(_) => Type::U16,
-            Value::S8(_) => Type::S8,
-            Value::S16(_) => Type::S16,
-            Value::S32(_) => Type::S32,
-            Value::U32(_) => Type::U32,
-            Value::Ipv4Addrs(_) => Type::Ipv4Addrs,
-            Value::Ipv6Addrs(_) => Type::Ipv6Addrs,
-        }
-    }
-}
-
 // impl convert::From<Value> for Type {
 //     fn from(t: Value) -> Type {
 //         match t {
@@ -238,7 +196,8 @@ impl convert::Into<CtlType> for Type {
 }
 
 /// An enum representing the value of a parameter.
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(EnumDiscriminants, Clone, PartialEq, Eq, Debug, Hash)]
+#[strum_discriminants(name(Type), derive(PartialOrd, Ord, Hash))]
 pub enum Value {
     Int(libc::c_int),
     String(String),

@@ -22,6 +22,11 @@ extern crate nix;
 
 extern crate rctl;
 
+extern crate strum;
+
+#[macro_use]
+extern crate strum_macros;
+
 use std::collections::HashMap;
 use std::convert;
 use std::net;
