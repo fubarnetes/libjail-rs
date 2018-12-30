@@ -43,4 +43,3 @@ pub fn parameter_hashmap(dict: &PyDict) -> PyResult<HashMap<String, native::para
 
     Ok(converted.into_iter().map(Result::unwrap).collect())
 }
-
