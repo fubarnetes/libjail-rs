@@ -6,9 +6,10 @@ extern crate rctl;
 use pyo3::prelude::*;
 
 use jail as native;
+mod error;
+mod param;
 mod running;
 mod stopped;
-mod param;
 use running::RunningJail;
 use stopped::StoppedJail;
 
@@ -29,7 +30,6 @@ impl JailError {
 fn jail_modinit(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<RunningJail>()?;
     m.add_class::<StoppedJail>()?;
-    m.add_class::<JailError>()?;
 
     Ok(())
 }

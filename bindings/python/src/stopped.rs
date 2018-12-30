@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::PyObjectWithToken;
-use pyo3::exceptions;
 
+use error::JailError;
 use jail as native;
-use running::RunningJail;
 use param::parameter_hashmap;
+use running::RunningJail;
 
 #[pyclass]
 pub struct StoppedJail {
@@ -87,7 +87,8 @@ impl StoppedJail {
             .inner
             .clone()
             .start()
-            .map_err(|_| exceptions::SystemError::py_err("Jail start failed"))?;
+            .map_err(JailError::from)
+            .map_err::<PyErr, _>(|e| e.into())?;
         self.py().init(|token| RunningJail::create(token, inner))
     }
 }

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use pyo3::prelude::*;
 use pyo3::{exceptions, PyObjectWithToken};
 
+use error::JailError;
 use jail as native;
 use stopped::StoppedJail;
 
@@ -49,7 +50,8 @@ impl RunningJail {
         Ok(self
             .inner
             .ips()
-            .map_err(|_| exceptions::SystemError::py_err("Could not get IP Addresses"))?
+            .map_err(JailError::from)
+            .map_err::<PyErr, _>(|e| e.into())?
             .iter()
             .map(|addr| format!("{}", addr))
             .collect())
@@ -60,7 +62,8 @@ impl RunningJail {
         Ok(self
             .inner
             .params()
-            .map_err(|_| exceptions::SystemError::py_err("Could not get parameters"))?
+            .map_err(JailError::from)
+            .map_err::<PyErr, _>(|e| e.into())?
             .iter()
             .filter_map(|(key, value)| {
                 let object = match value {
@@ -101,7 +104,8 @@ impl RunningJail {
             .inner
             .clone()
             .stop()
-            .map_err(|_| exceptions::SystemError::py_err("Jail stop failed"))?;
+            .map_err(JailError::from)
+            .map_err::<PyErr, _>(|e| e.into())?;
         self.dead = true;
         self.py().init(|token| StoppedJail::create(token, inner))
     }
@@ -117,7 +121,8 @@ impl RunningJail {
         self.inner
             .clone()
             .kill()
-            .map_err(|_| exceptions::SystemError::py_err("Jail stop failed"))?;
+            .map_err(JailError::from)
+            .map_err::<PyErr, _>(|e| e.into())?;
         self.dead = true;
         Ok(())
     }
@@ -164,12 +169,14 @@ impl RunningJail {
     fn attach(&self) -> PyResult<()> {
         self.inner
             .attach()
-            .map_err(|_| exceptions::SystemError::py_err("jail_attach failed"))
+            .map_err(JailError::from)
+            .map_err::<PyErr,_>(|e| e.into())
     }
 
     fn defer_cleanup(&self) -> PyResult<()> {
         self.inner
             .defer_cleanup()
-            .map_err(|_| exceptions::SystemError::py_err("Could not clear persist flag"))
+            .map_err(JailError::from)
+            .map_err::<PyErr, _>(|e| e.into())
     }
 }
