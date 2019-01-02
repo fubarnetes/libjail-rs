@@ -8,15 +8,15 @@ use pyo3::prelude::*;
 use jail as native;
 mod child;
 mod error;
+mod jls;
 mod param;
 mod running;
 mod stopped;
-mod jls;
 
 use child::Child;
+use jls::Jls;
 use running::RunningJail;
 use stopped::StoppedJail;
-use jls::Jls;
 
 #[pyclass]
 struct JailError {
@@ -31,7 +31,7 @@ impl JailError {
     }
 }
 
-#[pymodinit(_jail)]
+#[pymodinit(jail)]
 fn jail_modinit(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<RunningJail>()?;
     m.add_class::<StoppedJail>()?;

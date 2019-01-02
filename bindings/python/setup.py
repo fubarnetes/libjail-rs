@@ -40,7 +40,7 @@ setup(
         'Operating System :: POSIX :: BSD :: FreeBSD',
     ],
     packages=['jail'],
-    rust_extensions=[RustExtension('jail._jail', 'Cargo.toml')],
+    rust_extensions=[RustExtension('jail.jail', 'Cargo.toml')],
     install_requires=install_requires,
     tests_require=tests_require,
     setup_requires=setup_requires,
