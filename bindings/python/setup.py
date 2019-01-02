@@ -22,7 +22,7 @@ class PyTest(TestCommand):
 
         import subprocess
         import sys
-        errno = subprocess.call([sys.executable, '-m', 'pytest', 'tests'])
+        errno = subprocess.call(['pytest', '-v', 'tests'])
         raise SystemExit(errno)
 
 setup_requires = ['setuptools-rust>=0.10.1']

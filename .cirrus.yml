@@ -29,7 +29,7 @@ task:
       PYPREFIX: py27
   install_script: |
     pkg install -y curl ${PYTHON_PKG} ${PYPREFIX}-pip
-    ${PYTHON} -m pip install setuptools-rust
+    ${PYTHON} -m pip install setuptools-rust pytest pytest-benchmark
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
     . $HOME/.cargo/env
   build_script: |
@@ -37,3 +37,8 @@ task:
     . $HOME/.cargo/env
     cd bindings/python
     ${PYTHON} setup.py install
+  test_script: |
+    export PYTHON_SYS_EXECUTABLE=$(which ${PYTHON})
+    . $HOME/.cargo/env
+    cd bindings/python
+    ${PYTHON} setup.py test
