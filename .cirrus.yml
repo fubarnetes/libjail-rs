@@ -12,3 +12,33 @@ task:
   build_script: env PATH="$HOME/.cargo/bin:$PATH" cargo build
   test_script: env PATH="$HOME/.cargo/bin:$PATH" cargo test
   before_cache_script: rm -rf $CARGO_HOME/registry/index
+
+task:
+  freebsd_instance:
+    matrix:
+      image: freebsd-12-0-release-amd64
+      image: freebsd-11-2-release-amd64
+  matrix:
+    env:
+      PYTHON: python3.6
+      PYTHON_PKG: python36
+      PYPREFIX: py36
+    env:
+      PYTHON: python2.7
+      PYTHON_PKG: python27
+      PYPREFIX: py27
+  install_script: |
+    pkg install -y curl ${PYTHON_PKG} ${PYPREFIX}-pip
+    ${PYTHON} -m pip install setuptools-rust pytest pytest-benchmark
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+    . $HOME/.cargo/env
+  build_script: |
+    export PYTHON_SYS_EXECUTABLE=$(which ${PYTHON})
+    . $HOME/.cargo/env
+    cd bindings/python
+    ${PYTHON} setup.py install
+  test_script: |
+    export PYTHON_SYS_EXECUTABLE=$(which ${PYTHON})
+    . $HOME/.cargo/env
+    cd bindings/python
+    ${PYTHON} setup.py test
