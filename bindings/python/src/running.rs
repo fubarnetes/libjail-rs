@@ -52,12 +52,33 @@ impl DerefMut for RunningJail {
 #[pymethods]
 impl RunningJail {
     #[new]
-    fn __new__(obj: &PyRawObject, jid: i32) -> PyResult<()> {
-        obj.init(|token| RunningJail {
-            inner: native::RunningJail::from_jid(jid),
-            dead: false,
-            token,
-        })
+    fn __new__(obj: &PyRawObject, identifier: PyObject) -> PyResult<()> {
+        // Attempt to parse the id as a jid
+        let py_num: Result<&PyInt, PyDowncastError> = identifier.as_ref(obj.py()).try_into();
+        if let Ok(jid) = py_num {
+            let jid: i32 = jid.extract()?;
+            return obj.init(|token| RunningJail {
+                inner: native::RunningJail::from_jid(jid),
+                dead: false,
+                token,
+            });
+        }
+
+        // Attempt to parse the id as a string and interpret it as a name
+        let py_string: Result<&PyString, PyDowncastError> = identifier.as_ref(obj.py()).try_into();
+        if let Ok(name) = py_string {
+            let name: String = name.extract()?;
+            let inner = native::RunningJail::from_name(&name)
+                .map_err(JailError::from)
+                .map_err::<PyErr, _>(|e| e.into())?;
+            return obj.init(|token| RunningJail {
+                inner,
+                dead: false,
+                token,
+            });
+        }
+
+        Err(exceptions::ValueError::py_err("Invalid JID or name passed"))
     }
 
     /// Return a String representation of the Jail

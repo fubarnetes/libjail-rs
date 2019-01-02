@@ -61,3 +61,20 @@ def test_jls(benchmark):
         r.stop();
 
     assert started_jids <= jids
+
+
+def get_jail_by_name(name):
+    r = RunningJail(name)
+    hostname = r.parameters['host.hostname']
+    del r
+    return hostname
+
+def test_get_jail_by_name(benchmark):
+    s = StoppedJail('/rescue', name="foobar", parameters={"host.hostname": "foobar"})
+    r = s.start()
+
+    hostname = benchmark(get_jail_by_name, "foobar")
+
+    r.stop()
+
+    assert hostname == "foobar"
