@@ -37,6 +37,7 @@ pub use error::JailError;
 
 mod running;
 pub use running::RunningJail;
+pub use running::RunningJails as RunningJailIter;
 
 mod stopped;
 pub use stopped::StoppedJail;

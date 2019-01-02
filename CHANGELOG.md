@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] - ReleaseDate
+
+### Changed
+
+* Published `RunningJails` as `RunningJailIter`
+
 ## [0.0.6] - 2018-12-25
 
 ### Added
