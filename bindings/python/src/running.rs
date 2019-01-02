@@ -57,8 +57,10 @@ impl RunningJail {
         let py_num: Result<&PyInt, PyDowncastError> = identifier.as_ref(obj.py()).try_into();
         if let Ok(jid) = py_num {
             let jid: i32 = jid.extract()?;
+            let inner = native::RunningJail::from_jid(jid)
+                .ok_or(exceptions::SystemError::py_err("No jail with that JID"))?;
             return obj.init(|token| RunningJail {
-                inner: native::RunningJail::from_jid(jid),
+                inner,
                 dead: false,
                 token,
             });
