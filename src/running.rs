@@ -23,7 +23,8 @@ pub struct RunningJail {
 impl RunningJail {
     /// Create a [RunningJail](struct.RunningJail.html) instance given a `jid`.
     ///
-    /// No checks will be performed.
+    /// Returns an [Option] containing a [RunningJail] if a Jail with the given
+    /// `jid` exists, or None.
     ///
     /// # Examples
     ///
@@ -36,10 +37,45 @@ impl RunningJail {
     /// #     .expect("could not start jail");
     /// # let jid = jail.jid;
     ///
-    /// let running = RunningJail::from_jid(jid);
+    /// let running = RunningJail::from_jid(jid)
+    ///     .expect("No Jail with this JID");
     /// # running.kill();
     /// ```
-    pub fn from_jid(jid: i32) -> RunningJail {
+    ///
+    /// When given the JID of a non-existent jail, it should panic.
+    /// ```should_panic
+    /// use jail::RunningJail;
+    ///
+    /// let running = RunningJail::from_jid(99999)
+    ///     .expect("No Jail with this JID");
+    /// ```
+    pub fn from_jid(jid: i32) -> Option<RunningJail> {
+        match sys::jail_exists(jid) {
+            true => Some(Self::from_jid_unchecked(jid)),
+            false => None,
+        }
+    }
+
+    /// Create a [RunningJail](struct.RunningJail.html) instance given a `jid`.
+    ///
+    /// No checks will be performed. If `jid` is invalid, most method calls will
+    /// fail.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use jail::RunningJail;
+    /// # use jail::StoppedJail;
+    /// # let jail = StoppedJail::new("/rescue")
+    /// #     .name("testjail_from_jid")
+    /// #     .start()
+    /// #     .expect("could not start jail");
+    /// # let jid = jail.jid;
+    ///
+    /// let running = RunningJail::from_jid_unchecked(jid);
+    /// # running.kill();
+    /// ```
+    pub fn from_jid_unchecked(jid: i32) -> RunningJail {
         RunningJail { jid }
     }
 
@@ -64,7 +100,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn from_name(name: &str) -> Result<RunningJail, JailError> {
-        sys::jail_getid(name).map(RunningJail::from_jid)
+        sys::jail_getid(name).map(RunningJail::from_jid_unchecked)
     }
 
     /// Return the jail's `name`.

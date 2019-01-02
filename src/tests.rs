@@ -39,7 +39,7 @@ fn test_rctl_yes() {
 #[test]
 fn test_name_nonexistent_jail() {
     // Assume Jail 424242 is not running
-    let r: RunningJail = RunningJail::from_jid(424242);
+    let r: RunningJail = RunningJail::from_jid_unchecked(424242);
 
     r.name()
         .expect_err("Could get name for jail 424242 which should not be running.");
@@ -48,7 +48,7 @@ fn test_name_nonexistent_jail() {
 #[test]
 fn test_params_nonexistent_jail() {
     // Assume Jail 424242 is not running
-    let r: RunningJail = RunningJail::from_jid(424242);
+    let r: RunningJail = RunningJail::from_jid_unchecked(424242);
 
     r.params()
         .expect_err("Could get name for jail 424242 which should not be running.");

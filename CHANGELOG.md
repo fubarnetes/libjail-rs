@@ -9,6 +9,10 @@
 ### Changed
 
 * Published `RunningJails` as `RunningJailIter`
+* `RunningJail::from_jid(...)` now returns an `Option<RunningJail>` depending on
+  whether a Jail exists with that JID. The old behaviour of
+  `RunningJail::from_jid(...)` can be found in
+  `RunningJail::from_jid_unchecked(...)`
 
 ### Bugfixes
 * `RunningJails::params()` now correctly fails when an error occurs while

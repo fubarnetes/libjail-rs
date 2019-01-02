@@ -117,6 +117,27 @@ pub fn jail_create(
     }
 }
 
+/// Test if a jail exists. Returns
+pub fn jail_exists(jid: i32) -> bool {
+    let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
+    let mut jiov: Vec<libc::iovec> = vec![
+        iovec!(b"jid\0"),
+        iovec!(&jid as *const _, mem::size_of::<i32>()),
+        iovec!(b"errmsg\0"),
+        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
+    ];
+
+    let retjid = unsafe {
+        libc::jail_get(
+            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov.len() as u32,
+            JailFlags::empty().bits,
+        )
+    };
+
+    jid == retjid
+}
+
 /// Clear the persist flag
 #[cfg(target_os = "freebsd")]
 pub fn jail_clearpersist(jid: i32) -> Result<(), JailError> {

@@ -130,7 +130,7 @@ impl StoppedJail {
             );
         }
 
-        let ret = sys::jail_create(&path, params).map(RunningJail::from_jid)?;
+        let ret = sys::jail_create(&path, params).map(RunningJail::from_jid_unchecked)?;
 
         // Set resource limits
         if !self.limits.is_empty() {
