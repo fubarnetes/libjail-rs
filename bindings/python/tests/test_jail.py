@@ -78,3 +78,14 @@ def test_get_jail_by_name(benchmark):
     r.stop()
 
     assert hostname == "foobar"
+
+def test_stdio() :
+    s = StoppedJail('/rescue')
+    r = s.start()
+
+    c = r.spawn(["cat"], env={"PATH": "/"})
+    c.write_stdin(bytearray(b'hello world\n'))
+    assert c.read_stdout(100) == bytearray(b'hello world\n')
+    assert c.wait().code == 0
+
+    r.stop()
