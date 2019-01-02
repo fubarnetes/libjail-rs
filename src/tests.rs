@@ -1,5 +1,6 @@
 use process::Jailed;
 use rctl;
+use running::RunningJail;
 use std::os::unix::process::ExitStatusExt;
 use std::process::Command;
 use stopped::StoppedJail;
@@ -33,4 +34,22 @@ fn test_rctl_yes() {
     println!("{:?}", output);
 
     running.stop().expect("Could not stop Jail");
+}
+
+#[test]
+fn test_name_nonexistent_jail() {
+    // Assume Jail 424242 is not running
+    let r: RunningJail = RunningJail::from_jid(424242);
+
+    r.name()
+        .expect_err("Could get name for jail 424242 which should not be running.");
+}
+
+#[test]
+fn test_params_nonexistent_jail() {
+    // Assume Jail 424242 is not running
+    let r: RunningJail = RunningJail::from_jid(424242);
+
+    r.params()
+        .expect_err("Could get name for jail 424242 which should not be running.");
 }

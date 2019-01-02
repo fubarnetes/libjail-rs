@@ -818,7 +818,7 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
 /// # jail.kill().expect("could not stop jail");
 /// ```
 pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
-    let params = Ctl::new("security.jail.param")
+    let params: Result<Vec<(String, Value)>, JailError> = Ctl::new("security.jail.param")
         .map_err(JailError::SysctlError)?
         .into_iter()
         .filter_map(Result::ok)
@@ -843,14 +843,8 @@ pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
         .filter(|name| name != "ip6.addr")
         .filter(|name| name != "ip4.addr")
         // get parameters
-        .filter_map(|name| {
-            let value = get(jid, &name);
+        .map(|name| get(jid, &name).map(|v| (name, v)))
+        .collect();
 
-            match value {
-                Err(_) => None,
-                Ok(v) => Some((name, v)),
-            }
-        });
-
-    Ok(HashMap::from_iter(params))
+    Ok(HashMap::from_iter(params?))
 }

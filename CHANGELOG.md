@@ -6,6 +6,10 @@
 
 * Published `RunningJails` as `RunningJailIter`
 
+### Bugfixes
+* `RunningJails::params()` now correctly fails when an error occurs while
+  reading parameters.
+
 ## [0.0.6] - 2018-12-25
 
 ### Added
