@@ -15,6 +15,7 @@
   whether a Jail exists with that JID. The old behaviour of
   `RunningJail::from_jid(...)` can be found in
   `RunningJail::from_jid_unchecked(...)`
+* Added debug logging using the `log` crate.
 
 ### Bugfixes
 * `RunningJails::params()` now correctly fails when an error occurs while
