@@ -87,6 +87,9 @@ pub enum JailError {
 
     #[fail(display = "Jail must have a name if RCTL limits are to be set")]
     UnnamedButLimited,
+
+    #[fail(display = "Error creating a CString: {:?}", _0)]
+    CStringError(#[cause] std::ffi::NulError),
 }
 
 impl JailError {
