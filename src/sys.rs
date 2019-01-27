@@ -12,6 +12,18 @@ use param;
 use JailError;
 
 macro_rules! iovec {
+    ($key:expr => ($value:expr, $size:expr)) => {
+        vec![iovec!($key), iovec!($value, $size)]
+    };
+    ($key:expr => ()) => {
+        vec![iovec!($key), iovec!()]
+    };
+    ($key:expr => $value:expr) => {
+        vec![iovec!($key), iovec!($value)]
+    };
+    ($key:expr => mut $value:expr) => {
+        vec![iovec!($key), iovec!(mut $value)]
+    };
     ($value:expr, $size:expr) => {
         libc::iovec {
             iov_base: $value as *mut libc::c_void,
@@ -19,22 +31,13 @@ macro_rules! iovec {
         }
     };
     ($name:expr) => {
-        libc::iovec {
-            iov_base: $name.as_ptr() as *mut libc::c_void,
-            iov_len: $name.len(),
-        }
+        iovec!($name.as_ptr(), $name.len())
     };
     (mut $name:expr) => {
-        libc::iovec {
-            iov_base: $name.as_mut_ptr() as *mut libc::c_void,
-            iov_len: $name.len(),
-        }
+        iovec!($name.as_mut_ptr(), $name.len())
     };
     () => {
-        libc::iovec {
-            iov_base: ptr::null::<libc::c_void>() as *mut libc::c_void,
-            iov_len: 0,
-        }
+        iovec!(ptr::null::<libc::c_void>(), 0)
     };
 }
 
@@ -61,41 +64,46 @@ pub fn jail_create(
     params: HashMap<String, param::Value>,
 ) -> Result<i32, JailError> {
     trace!("jail_create(path={:?}, params={:?})", path, params);
-    let pathstr = CString::new(path.as_os_str().to_str().unwrap())
-        .unwrap()
-        .into_bytes_with_nul();
-    let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
-    let mut jiov = vec![
-        iovec!(b"path\0"),
-        iovec!(pathstr),
-        iovec!(b"errmsg\0"),
-        iovec!(mut errmsg),
-        iovec!(b"persist\0"),
-        iovec!(),
-    ];
-
-    let parameter_array: HashMap<CString, Vec<u8>> = params
+    // Note: we keep an owned copy of the raw parameter representations
+    // around that we only drop after the unsafe jail_set call.
+    // Dropping it earlier would cause a dangling pointer.
+    let raw_params: Vec<(Vec<u8>, Vec<u8>)> = params
         .iter()
-        .filter_map(|(key, value)| {
-            Some((
-                CString::new(key.clone()).ok()?,
-                value.clone().as_bytes().ok()?,
+        .map(|(key, value)| {
+            Ok((
+                CString::new(key.clone())
+                    .map_err(JailError::CStringError)?
+                    .into_bytes_with_nul(),
+                value.clone().as_bytes()?,
             ))
         })
-        .collect();
+        .collect::<Result<_, JailError>>()?;
 
-    let mut param_jiov: Vec<libc::iovec> = parameter_array
+    let mut jiov: Vec<libc::iovec> = raw_params
         .iter()
-        .flat_map(|(key, value)| {
-            vec![
-                iovec!(key.as_ptr(), key.as_bytes_with_nul().len()),
-                iovec!(value.as_ptr() as *const libc::c_void, value.len()),
-            ]
-        })
+        .flat_map(|(ref key, ref value)| iovec!(key => value))
         .collect();
 
-    jiov.append(&mut param_jiov);
+    let pathstr = path
+        .to_str()
+        .ok_or(JailError::SerializeFailed)
+        .map(CString::new)?
+        .map_err(JailError::CStringError)?
+        .into_bytes_with_nul();
+
+    // Set persist and errmsg
+    let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
+    jiov.append(
+        &mut vec![
+            iovec!(b"path\0" => pathstr),
+            iovec!(b"errmsg\0" => mut errmsg),
+            iovec!(b"persist\0" => ()),
+        ]
+        .into_iter()
+        .flatten()
+        .collect(),
+    );
 
     let jid = unsafe {
         libc::jail_set(
@@ -123,11 +131,12 @@ pub fn jail_exists(jid: i32) -> bool {
     trace!("jail_exists({})", jid);
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
     let mut jiov: Vec<libc::iovec> = vec![
-        iovec!(b"jid\0"),
-        iovec!(&jid as *const _, mem::size_of::<i32>()),
-        iovec!(b"errmsg\0"),
-        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
-    ];
+        iovec!(b"jid\0" => (&jid as *const _, mem::size_of::<i32>())),
+        iovec!(b"errmsg\0" => mut errmsg),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
 
     let retjid = unsafe {
         libc::jail_get(
@@ -146,13 +155,13 @@ pub fn jail_clearpersist(jid: i32) -> Result<(), JailError> {
     trace!("jail_clearpersist({})", jid);
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
     let mut jiov: Vec<libc::iovec> = vec![
-        iovec!(b"jid\0"),
-        iovec!(&jid as *const _, mem::size_of::<i32>()),
-        iovec!(b"errmsg\0"),
-        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
-        iovec!(b"nopersist\0"),
-        iovec!(),
-    ];
+        iovec!(b"jid\0" => (&jid as *const _, mem::size_of::<i32>())),
+        iovec!(b"errmsg\0" => mut errmsg),
+        iovec!(b"nopersist\0" => ()),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
 
     let jid = unsafe {
         libc::jail_set(
@@ -190,12 +199,11 @@ pub fn jail_getid(name: &str) -> Result<i32, JailError> {
 
     let name = CString::new(name).unwrap().into_bytes_with_nul();
 
-    let mut jiov = vec![
-        iovec!(b"name\0"),
-        iovec!(name),
-        iovec!(b"errmsg\0"),
-        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
-    ];
+    let mut jiov: Vec<libc::iovec> =
+        vec![iovec!(b"name\0" => name), iovec!(b"errmsg\0" => mut errmsg)]
+            .into_iter()
+            .flatten()
+            .collect();
 
     let jid = unsafe {
         libc::jail_get(
@@ -224,12 +232,13 @@ pub fn jail_nextjid(lastjid: i32) -> Result<i32, JailError> {
     trace!("jail_nextjid(lastjid={})", lastjid);
     let mut errmsg: [u8; 256] = unsafe { mem::zeroed() };
 
-    let mut jiov = vec![
-        iovec!(b"lastjid\0"),
-        iovec!(&lastjid as *const _, mem::size_of::<i32>()),
-        iovec!(b"errmsg\0"),
-        iovec!(errmsg.as_mut_ptr(), errmsg.len()),
-    ];
+    let mut jiov: Vec<libc::iovec> = vec![
+        iovec!(b"lastjid\0" => (&lastjid as *const _, mem::size_of::<i32>())),
+        iovec!(b"errmsg\0" => mut errmsg),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
 
     let jid = unsafe {
         libc::jail_get(
