@@ -1,6 +1,7 @@
 # libjail-rs
 
 [![Crates.io](https://img.shields.io/crates/v/jail.svg?style=flat-square)](https://crates.io/crates/jail)
+[![](https://tokei.rs/b1/github/fubarnetes/libjail-rs)](https://github.com/fubarnetes/libjail-rs)
 [![GitHub last commit](https://img.shields.io/github/last-commit/fubarnetes/libjail-rs.svg?style=flat-square)](https://github.com/fubarnetes/libjail-rs/commits/master)
 [![Gitter](https://img.shields.io/gitter/room/fubarnetes/libjail-rs.js.svg?style=flat-square)](https://gitter.im/fubarnetes/libjail-rs)
 [![Libraries.io for
