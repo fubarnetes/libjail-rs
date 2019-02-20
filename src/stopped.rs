@@ -8,11 +8,15 @@ use sys;
 use JailError;
 use RunningJail;
 
+#[cfg(feature="serialize")]
+use serde::{Serialize};
+
 use std::fmt;
 
 /// Represent a stopped jail including all information required to start it
 #[derive(Clone, PartialEq, Eq, Debug)]
 #[cfg(target_os = "freebsd")]
+#[cfg_attr(feature="serialize", derive(Serialize))]
 pub struct StoppedJail {
     /// The path of root file system of the jail
     pub path: Option<path::PathBuf>,
@@ -270,4 +274,5 @@ impl StoppedJail {
         self.ips.push(ip);
         self
     }
+
 }

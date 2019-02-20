@@ -15,6 +15,8 @@ use JailError;
 
 use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
 use sysctl::{Ctl, CtlFlags, CtlType, CtlValue};
+#[cfg(feature="serialize")]
+use serde::{Serialize};
 
 use nix;
 
@@ -206,6 +208,7 @@ impl convert::Into<CtlType> for Type {
 /// An enum representing the value of a parameter.
 #[derive(EnumDiscriminants, Clone, PartialEq, Eq, Debug, Hash)]
 #[strum_discriminants(name(Type), derive(PartialOrd, Ord, Hash))]
+#[cfg_attr(feature="serialize", derive(Serialize))]
 pub enum Value {
     Int(libc::c_int),
     String(String),

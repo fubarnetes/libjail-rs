@@ -20,6 +20,9 @@ travis-ci = { repository = "fubarnetes/libjail-rs", branch = "master" }
 is-it-maintained-issue-resolution = { repository = "fubarnetes/libjail-rs" }
 is-it-maintained-open-issues = { repository = "fubarnetes/libjail-rs" }
 
+[features]
+serialize = ["serde", "serde_json", "rctl/serialize"]
+
 [dependencies]
 bitflags = "^1"
 byteorder = "^1.2.3"
@@ -31,6 +34,8 @@ nix= "^0.13.0"
 rctl = "0.1.0"
 strum = "0.15.0"
 strum_macros = "0.15.0"
+serde = { version="1.0", features = ["derive"], optional=true}
+serde_json = { version="1.0", optional=true }
 
 [dev-dependencies]
 pretty_env_logger = "0.3"

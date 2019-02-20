@@ -7,6 +7,7 @@
 * example showing how to query RCTL usage.
 * code coverage with codecov.io. Unfortunately, this doesn't yet take docstests
   into account, so coverage is actually a bit better in reality.
+* serialization support for stopped jails with serde (#53)
 
 ### Changed
 

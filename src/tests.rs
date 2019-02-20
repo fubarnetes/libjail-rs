@@ -4,6 +4,55 @@ use running::RunningJail;
 use std::os::unix::process::ExitStatusExt;
 use std::process::Command;
 use stopped::StoppedJail;
+use param;
+#[cfg(feature="serialize")]
+use serde_json;
+
+#[cfg(feature="serialize")]
+#[test]
+fn test_serializing_jail() {
+
+    let rctl_enabled = rctl::State::check().is_enabled();
+
+    let mut stopped = StoppedJail::new("/")
+        .name("testjail_serializing")
+        .ip("127.0.1.1".parse().expect("couldn't parse IP Addr"))
+        .param(
+            "osrelease",
+            param::Value::String("FreeBSD 42.23".to_string()),
+        );
+
+    if rctl_enabled {
+        // Skip setting limits if racct is disabled.
+        stopped = stopped.limit(
+            rctl::Resource::Wallclock,
+            rctl::Limit::amount(1),
+            rctl::Action::Signal(rctl::Signal::SIGKILL),
+        );
+    }
+
+    let serialized = serde_json::to_string(&stopped)
+        .expect("could not serialize jail");
+
+    let output: serde_json::Value = serde_json::from_str(&serialized)
+        .expect("could not parse serialized string");
+
+    assert_eq!(output["name"], "testjail_serializing");
+    assert_eq!(output["ips"][0], "127.0.1.1");
+    assert_eq!(output["params"]["osrelease"]["String"]
+               .as_str()
+               .expect("could not read jails parameter value"),
+               "FreeBSD 42.23");
+
+    if rctl_enabled {
+        let limits = &output["limits"][0];
+        assert_eq!(limits[0], "Wallclock");
+        assert_eq!(limits[1]["amount"], 1);
+        assert_eq!(limits[2]["Signal"], "SIGKILL")
+    }
+
+}
+
 
 #[test]
 fn test_rctl_yes() {
