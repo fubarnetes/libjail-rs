@@ -11,9 +11,9 @@ install:
 matrix:
   include:
   - env: TARGET=x86_64-unknown-freebsd
-    script: cargo build --target=$TARGET
+    script: cargo build --target=$TARGET --all-features
   - env: TARGET=i686-unknown-freebsd
-    script: cargo build --target=$TARGET
+    script: cargo build --target=$TARGET --all-features
     addons:
       apt:
         packages:
