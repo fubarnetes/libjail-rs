@@ -28,7 +28,7 @@ libc = "~0.2.41"
 log="0.4"
 sysctl = "~0.3.0"
 nix= "^0.13.0"
-rctl = "0.0.5"
+rctl = "0.1.0"
 strum = "0.15.0"
 strum_macros = "0.15.0"
 
