@@ -11,6 +11,7 @@ use RunningJail;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
+use std::convert::TryFrom;
 use std::fmt;
 
 /// Represent a stopped jail including all information required to start it
@@ -49,6 +50,14 @@ impl Default for StoppedJail {
             ips: vec![],
             limits: vec![],
         }
+    }
+}
+
+impl TryFrom<RunningJail> for StoppedJail {
+    type Error = JailError;
+
+    fn try_from(running: RunningJail) -> Result<StoppedJail, Self::Error> {
+        running.stop()
     }
 }
 

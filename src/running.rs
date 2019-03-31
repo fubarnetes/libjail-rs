@@ -6,6 +6,7 @@ use JailError;
 use StoppedJail;
 
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::io::{Error, ErrorKind};
 use std::net;
 use std::path;
@@ -542,6 +543,14 @@ impl RunningJail {
     pub fn defer_cleanup(&self) -> Result<(), JailError> {
         trace!("RunningJail::defer_cleanup({:?})", self);
         sys::jail_clearpersist(self.jid)
+    }
+}
+
+impl TryFrom<StoppedJail> for RunningJail {
+    type Error = JailError;
+
+    fn try_from(stopped: StoppedJail) -> Result<RunningJail, Self::Error> {
+        stopped.start()
     }
 }
 
