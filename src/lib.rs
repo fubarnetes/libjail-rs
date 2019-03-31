@@ -30,10 +30,10 @@ extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
-#[cfg(feature="serialize")]
+#[cfg(feature = "serialize")]
 extern crate serde;
 
-#[cfg(feature="serialize")]
+#[cfg(feature = "serialize")]
 extern crate serde_json;
 
 use std::collections::HashMap;

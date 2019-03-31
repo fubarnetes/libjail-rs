@@ -1,17 +1,16 @@
+use param;
 use process::Jailed;
 use rctl;
 use running::RunningJail;
+#[cfg(feature = "serialize")]
+use serde_json;
 use std::os::unix::process::ExitStatusExt;
 use std::process::Command;
 use stopped::StoppedJail;
-use param;
-#[cfg(feature="serialize")]
-use serde_json;
 
-#[cfg(feature="serialize")]
+#[cfg(feature = "serialize")]
 #[test]
 fn test_serializing_jail() {
-
     let rctl_enabled = rctl::State::check().is_enabled();
 
     let mut stopped = StoppedJail::new("/")
@@ -31,18 +30,19 @@ fn test_serializing_jail() {
         );
     }
 
-    let serialized = serde_json::to_string(&stopped)
-        .expect("could not serialize jail");
+    let serialized = serde_json::to_string(&stopped).expect("could not serialize jail");
 
-    let output: serde_json::Value = serde_json::from_str(&serialized)
-        .expect("could not parse serialized string");
+    let output: serde_json::Value =
+        serde_json::from_str(&serialized).expect("could not parse serialized string");
 
     assert_eq!(output["name"], "testjail_serializing");
     assert_eq!(output["ips"][0], "127.0.1.1");
-    assert_eq!(output["params"]["osrelease"]["String"]
-               .as_str()
-               .expect("could not read jails parameter value"),
-               "FreeBSD 42.23");
+    assert_eq!(
+        output["params"]["osrelease"]["String"]
+            .as_str()
+            .expect("could not read jails parameter value"),
+        "FreeBSD 42.23"
+    );
 
     if rctl_enabled {
         let limits = &output["limits"][0];
@@ -50,9 +50,7 @@ fn test_serializing_jail() {
         assert_eq!(limits[1]["amount"], 1);
         assert_eq!(limits[2]["Signal"], "SIGKILL")
     }
-
 }
-
 
 #[test]
 fn test_rctl_yes() {

@@ -12,8 +12,7 @@ fn main() {
         panic!("Need RCTL for this example!");
     }
 
-    let stopped = jail::StoppedJail::new("/")
-        .name("example_racct");
+    let stopped = jail::StoppedJail::new("/").name("example_racct");
 
     let running = stopped.start().expect("Failed to start jail");
 
