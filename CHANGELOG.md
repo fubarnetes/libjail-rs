@@ -4,6 +4,7 @@
 
 ### Added
 
+* implementations for `TryFrom` to start / stop jails.
 * example showing how to query RCTL usage.
 * code coverage with codecov.io. Unfortunately, this doesn't yet take docstests
   into account, so coverage is actually a bit better in reality.
