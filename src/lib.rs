@@ -3,6 +3,8 @@
 //! it aims to provide the features exposed by the FreeBSD Jail Library
 //! [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable)
 
+#![type_length_limit="17825821"]
+
 extern crate byteorder;
 
 #[macro_use]
