@@ -19,6 +19,8 @@
 * Added debug logging using the `log` crate.
 
 ### Bugfixes
+* Increased `type_length_limit` to 17825821 to fix a build failure on
+  Rust 1.35.0 (See #59, #60, https://github.com/rust-lang/rust/issues/58952).
 * `RunningJails::params()` now correctly fails when an error occurs while
   reading parameters.
 
