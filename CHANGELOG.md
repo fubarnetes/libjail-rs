@@ -2,6 +2,12 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Known Issues
+* Due to an issue with `type_length_limit` increasing exponentially,
+  consumers of libjail-rs may have to set an increased `type_length_limit`
+  on their crate.
+  ([#59](https://github.com/fubarnetes/libjail-rs/issues/59))
+
 ### Added
 
 * implementations for `TryFrom` to start / stop jails.
