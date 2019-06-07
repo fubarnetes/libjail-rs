@@ -11,14 +11,17 @@ use RunningJail;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
+use default_logger;
 use std::convert::TryFrom;
 use std::fmt;
 
 /// Represent a stopped jail including all information required to start it
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 #[cfg(target_os = "freebsd")]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct StoppedJail {
+    pub logger: slog::Logger,
+
     /// The path of root file system of the jail
     pub path: Option<path::PathBuf>,
 
@@ -38,11 +41,24 @@ pub struct StoppedJail {
     pub limits: Vec<(rctl::Resource, rctl::Limit, rctl::Action)>,
 }
 
+impl PartialEq for StoppedJail {
+    fn eq(&self, other: &Self) -> bool {
+        self.path == other.path
+            && self.name == other.name
+            && self.hostname == other.hostname
+            && self.params == other.params
+            && self.ips == other.ips
+            && self.limits == other.limits
+    }
+}
+
 #[cfg(target_os = "freebsd")]
 impl Default for StoppedJail {
     fn default() -> StoppedJail {
-        trace!("StoppedJail::default()");
+        let logger = default_logger();
+        trace!(logger, "StoppedJail::default()");
         StoppedJail {
+            logger,
             path: None,
             name: None,
             hostname: None,
@@ -73,7 +89,8 @@ impl StoppedJail {
     /// let j = StoppedJail::new("/rescue");
     /// ```
     pub fn new<P: Into<path::PathBuf> + fmt::Debug>(path: P) -> StoppedJail {
-        trace!("StoppedJail::new(path={:?})", path);
+        let logger = default_logger();
+        trace!(logger, "StoppedJail::new(path={:?})", path);
         let mut ret: StoppedJail = Default::default();
         ret.path = Some(path.into());
         ret
@@ -95,7 +112,7 @@ impl StoppedJail {
     /// # running.kill();
     /// ```
     pub fn start(self: StoppedJail) -> Result<RunningJail, JailError> {
-        trace!("StoppedJail::start({:?})", self);
+        trace!(self.logger, "StoppedJail::start({:?})", self);
         let path = match self.path {
             None => return Err(JailError::PathNotGiven),
             Some(ref p) => p.clone(),
@@ -148,7 +165,8 @@ impl StoppedJail {
             );
         }
 
-        let ret = sys::jail_create(&path, params).map(RunningJail::from_jid_unchecked)?;
+        let ret =
+            sys::jail_create(&path, params, &self.logger).map(RunningJail::from_jid_unchecked)?;
 
         // Set resource limits
         if !self.limits.is_empty() {
@@ -184,7 +202,12 @@ impl StoppedJail {
     /// assert_eq!(stopped.name, Some("test_stopped_name".to_string()));
     /// ```
     pub fn name<S: Into<String> + fmt::Debug>(mut self: Self, name: S) -> Self {
-        trace!("StoppedJail::start({:?}, name={:?})", self, name);
+        trace!(
+            self.logger,
+            "StoppedJail::start({:?}, name={:?})",
+            self,
+            name
+        );
         self.name = Some(name.into());
         self
     }
@@ -203,7 +226,12 @@ impl StoppedJail {
     /// assert_eq!(stopped.hostname, Some("example.com".to_string()));
     /// ```
     pub fn hostname<S: Into<String> + fmt::Debug>(mut self: Self, hostname: S) -> Self {
-        trace!("StoppedJail::hostname({:?}, hostname={:?})", self, hostname);
+        trace!(
+            self.logger,
+            "StoppedJail::hostname({:?}, hostname={:?})",
+            self,
+            hostname
+        );
         self.hostname = Some(hostname.into());
         self
     }
@@ -226,6 +254,7 @@ impl StoppedJail {
         value: param::Value,
     ) -> Self {
         trace!(
+            self.logger,
             "StoppedJail::param({:?}, param={:?}, value={:?})",
             self,
             param,
@@ -256,6 +285,7 @@ impl StoppedJail {
         action: rctl::Action,
     ) -> Self {
         trace!(
+            self.logger,
             "StoppedJail::limit({:?}, resource={:?}, limit={:?}, action={:?})",
             self,
             resource,
@@ -279,7 +309,7 @@ impl StoppedJail {
     ///     .ip("fe80::2".parse().expect("could not parse ::1"));
     /// ```
     pub fn ip(mut self: Self, ip: net::IpAddr) -> Self {
-        trace!("StoppedJail::ip({:?}, ip={:?})", self, ip);
+        trace!(self.logger, "StoppedJail::ip({:?}, ip={:?})", self, ip);
         self.ips.push(ip);
         self
     }
