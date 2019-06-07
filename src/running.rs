@@ -5,6 +5,7 @@ use sys;
 use JailError;
 use StoppedJail;
 
+use default_logger;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::io::{Error, ErrorKind};
@@ -12,11 +13,33 @@ use std::net;
 use std::path;
 
 /// Represents a running jail.
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+#[derive(Clone, Debug)]
 #[cfg(target_os = "freebsd")]
 pub struct RunningJail {
+    pub logger: slog::Logger,
+
     /// The `jid` of the jail
     pub jid: i32,
+}
+
+impl PartialEq for RunningJail {
+    fn eq(&self, other: &Self) -> bool {
+        self.jid == other.jid
+    }
+}
+
+impl Eq for RunningJail {}
+
+impl Ord for RunningJail {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.jid.cmp(&other.jid)
+    }
+}
+
+impl PartialOrd for RunningJail {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 /// Represent a running jail.
@@ -51,8 +74,9 @@ impl RunningJail {
     ///     .expect("No Jail with this JID");
     /// ```
     pub fn from_jid(jid: i32) -> Option<RunningJail> {
-        trace!("RunningJail::from_jid({})", jid);
-        match sys::jail_exists(jid) {
+        let logger = default_logger();
+        trace!(logger, "RunningJail::from_jid({})", jid);
+        match sys::jail_exists(jid, &logger) {
             true => Some(Self::from_jid_unchecked(jid)),
             false => None,
         }
@@ -78,8 +102,9 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn from_jid_unchecked(jid: i32) -> RunningJail {
-        trace!("RunningJail::from_jid_unchecked({})", jid);
-        RunningJail { jid }
+        let logger = default_logger();
+        trace!(logger, "RunningJail::from_jid_unchecked({})", jid);
+        RunningJail { logger, jid }
     }
 
     /// Create a [RunningJail](struct.RunningJail.html) given the jail `name`.
@@ -103,8 +128,9 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn from_name(name: &str) -> Result<RunningJail, JailError> {
-        trace!("RunningJail::from_name({})", name);
-        sys::jail_getid(name).map(RunningJail::from_jid_unchecked)
+        let logger = default_logger();
+        trace!(logger, "RunningJail::from_name({})", name);
+        sys::jail_getid(name, &logger).map(RunningJail::from_jid_unchecked)
     }
 
     /// Return the jail's `name`.
@@ -123,7 +149,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn name(self: &RunningJail) -> Result<String, JailError> {
-        trace!("RunningJail::name({:?})", self);
+        trace!(self.logger, "RunningJail::name({:?})", self);
         self.param("name")?.unpack_string()
     }
 
@@ -147,7 +173,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn path(self: &RunningJail) -> Result<path::PathBuf, JailError> {
-        trace!("RunningJail::path({:?})", self);
+        trace!(self.logger, "RunningJail::path({:?})", self);
         Ok(self.param("path")?.unpack_string()?.into())
     }
 
@@ -171,7 +197,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn hostname(self: &RunningJail) -> Result<String, JailError> {
-        trace!("RunningJail::hostname({:?})", self);
+        trace!(self.logger, "RunningJail::hostname({:?})", self);
         self.param("host.hostname")?.unpack_string()
     }
 
@@ -194,7 +220,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn ips(self: &RunningJail) -> Result<Vec<net::IpAddr>, JailError> {
-        trace!("RunningJail::ips({:?})", self);
+        trace!(self.logger, "RunningJail::ips({:?})", self);
         let mut ips: Vec<net::IpAddr> = vec![];
         ips.extend(
             self.param("ip4.addr")?
@@ -228,8 +254,8 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn param(self: &Self, name: &str) -> Result<param::Value, JailError> {
-        trace!("RunningJail::param({:?}, name={})", self, name);
-        param::get(self.jid, name)
+        trace!(self.logger, "RunningJail::param({:?}, name={})", self, name);
+        param::get(self.jid, name, &self.logger)
     }
 
     /// Return a HashMap of all jail parameters.
@@ -254,8 +280,8 @@ impl RunningJail {
     /// # running.kill().expect("could not stop jail");
     /// ```
     pub fn params(self: &Self) -> Result<HashMap<String, param::Value>, JailError> {
-        trace!("RunningJail::params({:?})", self);
-        param::get_all(self.jid)
+        trace!(self.logger, "RunningJail::params({:?})", self);
+        param::get_all(self.jid, &self.logger)
     }
 
     /// Set a jail parameter.
@@ -276,12 +302,13 @@ impl RunningJail {
     /// ```
     pub fn param_set(self: &Self, name: &str, value: param::Value) -> Result<(), JailError> {
         trace!(
+            self.logger,
             "RunningJail::param_set({:?}, name={:?}, value={:?})",
             self,
             name,
             value
         );
-        param::set(self.jid, name, value)
+        param::set(self.jid, name, value, &self.logger)
     }
 
     /// Kill a running jail, consuming it.
@@ -298,9 +325,9 @@ impl RunningJail {
     /// running.kill();
     /// ```
     pub fn kill(self: RunningJail) -> Result<(), JailError> {
-        trace!("RunningJail::kill({:?})", self);
+        trace!(self.logger, "RunningJail::kill({:?})", self);
         let name = self.name()?;
-        sys::jail_remove(self.jid)?;
+        sys::jail_remove(self.jid, &self.logger)?;
 
         // Tear down RCTL rules
         {
@@ -345,7 +372,7 @@ impl RunningJail {
     /// # running.kill().unwrap();
     /// ```
     pub fn save(self: &RunningJail) -> Result<StoppedJail, JailError> {
-        trace!("RunningJail::save({:?})", self);
+        trace!(self.logger, "RunningJail::save({:?})", self);
         let mut stopped = StoppedJail::new(self.path()?);
 
         stopped.name = self.name().ok();
@@ -401,7 +428,7 @@ impl RunningJail {
     /// //assert_eq!(stopped.hostname, Some("testjail_save.example.com".into()));
     /// ```
     pub fn stop(self: RunningJail) -> Result<StoppedJail, JailError> {
-        trace!("RunningJail::stop({:?})", self);
+        trace!(self.logger, "RunningJail::stop({:?})", self);
         let stopped = self.save()?;
         self.kill()?;
 
@@ -429,7 +456,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn restart(self: RunningJail) -> Result<RunningJail, JailError> {
-        trace!("RunningJail::restart({:?})", self);
+        trace!(self.logger, "RunningJail::restart({:?})", self);
         let stopped = self.stop()?;
         stopped.start()
     }
@@ -459,7 +486,6 @@ impl RunningJail {
     /// # }
     /// ```
     pub fn all() -> RunningJails {
-        trace!("RunningJail::all()");
         RunningJails::default()
     }
 
@@ -482,7 +508,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn racct_statistics(&self) -> Result<HashMap<rctl::Resource, usize>, JailError> {
-        trace!("RunningJail::racct_statistics({:?})", self);
+        trace!(self.logger, "RunningJail::racct_statistics({:?})", self);
         // First let's try to get the RACCT statistics in the happy path
         rctl::Subject::jail_name(self.name()?)
             .usage()
@@ -491,7 +517,7 @@ impl RunningJail {
 
     /// Jail the current process into the given jail.
     pub fn attach(&self) -> Result<(), JailError> {
-        trace!("RunningJail::attach({:?})", self);
+        trace!(self.logger, "RunningJail::attach({:?})", self);
         let ret = unsafe { libc::jail_attach(self.jid) };
         match ret {
             0 => Ok(()),
@@ -541,8 +567,8 @@ impl RunningJail {
     /// jail.kill().expect_err("Jail should be dead by now.");
     /// ```
     pub fn defer_cleanup(&self) -> Result<(), JailError> {
-        trace!("RunningJail::defer_cleanup({:?})", self);
-        sys::jail_clearpersist(self.jid)
+        trace!(self.logger, "RunningJail::defer_cleanup({:?})", self);
+        sys::jail_clearpersist(self.jid, &self.logger)
     }
 }
 
@@ -559,23 +585,34 @@ impl TryFrom<StoppedJail> for RunningJail {
 /// See [RunningJail::all()](struct.RunningJail.html#method.all) for a usage
 /// example.
 #[cfg(target_os = "freebsd")]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
 pub struct RunningJails {
+    logger: slog::Logger,
     lastjid: i32,
 }
+
+impl PartialEq for RunningJails {
+    fn eq(&self, other: &Self) -> bool {
+        self.lastjid == other.lastjid
+    }
+}
+
+impl Eq for RunningJails {}
 
 #[cfg(target_os = "freebsd")]
 impl Default for RunningJails {
     fn default() -> Self {
-        trace!("RunningJails::default()");
-        RunningJails { lastjid: 0 }
+        let logger = default_logger();
+        trace!(logger, "RunningJails::default()");
+        RunningJails { logger, lastjid: 0 }
     }
 }
 
 #[cfg(target_os = "freebsd")]
 impl RunningJails {
     pub fn new() -> Self {
-        trace!("RunningJails::new()");
+        let logger = default_logger();
+        trace!(logger, "RunningJails::new()");
         RunningJails::default()
     }
 }
@@ -585,14 +622,17 @@ impl Iterator for RunningJails {
     type Item = RunningJail;
 
     fn next(&mut self) -> Option<RunningJail> {
-        trace!("RunningJails::next({:?})", self);
-        let jid = match sys::jail_nextjid(self.lastjid) {
+        trace!(self.logger, "RunningJails::next({:?})", self);
+        let jid = match sys::jail_nextjid(self.lastjid, &self.logger) {
             Ok(j) => j,
             Err(_) => return None,
         };
 
         self.lastjid = jid;
 
-        Some(RunningJail { jid })
+        Some(RunningJail {
+            logger: self.logger.clone(),
+            jid,
+        })
     }
 }

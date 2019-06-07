@@ -43,10 +43,10 @@ pub trait Jailed {
 #[cfg(target_os = "freebsd")]
 impl Jailed for process::Command {
     fn jail(&mut self, jail: &RunningJail) -> &mut process::Command {
-        trace!("process::Command::jail({:?}, jail={:?})", self, jail);
-        let jail = *jail;
+        //trace!("process::Command::jail({:?}, jail={:?})", self, jail);
+        let jail = jail.clone();
         self.before_exec(move || {
-            trace!("before_exec handler: attaching");
+            //trace!("before_exec handler: attaching");
             jail.attach().map_err(|err| match err {
                 JailError::JailAttachError(e) => e,
                 _ => panic!("jail.attach() failed with unexpected error"),
