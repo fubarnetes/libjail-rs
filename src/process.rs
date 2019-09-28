@@ -45,13 +45,15 @@ impl Jailed for process::Command {
     fn jail(&mut self, jail: &RunningJail) -> &mut process::Command {
         trace!("process::Command::jail({:?}, jail={:?})", self, jail);
         let jail = *jail;
-        self.before_exec(move || {
-            trace!("before_exec handler: attaching");
-            jail.attach().map_err(|err| match err {
-                JailError::JailAttachError(e) => e,
-                _ => panic!("jail.attach() failed with unexpected error"),
-            })
-        });
+        unsafe {
+            self.pre_exec(move || {
+                trace!("pre_exec handler: attaching");
+                jail.attach().map_err(|err| match err {
+                    JailError::JailAttachError(e) => e,
+                    _ => panic!("jail.attach() failed with unexpected error"),
+                })
+            });
+        }
 
         self
     }
