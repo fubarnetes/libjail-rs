@@ -841,6 +841,25 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
 /// ```
 pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
     trace!("get_all(jid={})", jid);
+
+    // If we have individual filters on each of these, we'll end up with a
+    // very large type_length_limit. We can quickly check names against a vec
+    // to avoid that.
+    let filtered_names = vec![
+        // The following parameters are dynamic
+        "jid",
+        "dying",
+        "parent",
+        "children.cur",
+        "cpuset.id",
+        // The following parameters are handled separately
+        "name",
+        "hostname",
+        "path",
+        "ip4.addr",
+        "ip6.addr",
+    ];
+
     let params: Result<Vec<(String, Value)>, JailError> = Ctl::new("security.jail.param")
         .map_err(JailError::SysctlError)?
         .into_iter()
@@ -851,20 +870,12 @@ pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
         // Remove leading "security.jail.param"
         .filter(|name| name.starts_with("security.jail.param"))
         .map(|string| string["security.jail.param.".len()..].to_string())
-        // Remove elements with a trailing dot (nodes)
-        .filter(|name| !name.ends_with('.'))
-        // The following parameters are dynamic
-        .filter(|name| name != "jid")
-        .filter(|name| name != "dying")
-        .filter(|name| name != "parent")
-        .filter(|name| name != "children.cur")
-        .filter(|name| name != "cpuset.id")
-        // The following parameters are handled separately
-        .filter(|name| name != "name")
-        .filter(|name| name != "hostname")
-        .filter(|name| name != "path")
-        .filter(|name| name != "ip6.addr")
-        .filter(|name| name != "ip4.addr")
+        .filter(|name| {
+            // Remove elements with a trailing dot (nodes)
+            !name.ends_with('.')
+            // Filter out any names in the filtered_names vec.
+            && !filtered_names.contains(&name.as_str())
+        })
         // get parameters
         .map(|name| get(jid, &name).map(|v| (name, v)))
         .collect();
