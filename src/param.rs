@@ -16,7 +16,7 @@ use JailError;
 use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
 #[cfg(feature = "serialize")]
 use serde::Serialize;
-use sysctl::{Sysctl, Ctl, CtlFlags, CtlType, CtlValue};
+use sysctl::{Ctl, CtlFlags, CtlType, CtlValue, Sysctl};
 
 use nix;
 
