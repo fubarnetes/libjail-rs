@@ -2,6 +2,16 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+* Updated `sysctl` to version 0.4.0
+* Updated `strum` to 0.16.0
+* Use `pre_exec` instead of `before_exec` in `Jailed::jail`
+
+### Bugfixes
+
+* Remove the need to set an increased `type_length_limit` (Thanks to @phyber!)
+
 ## [0.1.0] - 2019-06-07
 
 ### Known Issues
