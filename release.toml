@@ -1,4 +1,4 @@
-tag-prefix = "v"
+tag-prefix = ""
 tag-message = "Release {{version}}"
 pre-release-commit-message = "release: {{version}}"
 
