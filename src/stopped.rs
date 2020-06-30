@@ -108,34 +108,38 @@ impl StoppedJail {
 
         let mut params = self.params.clone();
 
-        // Set the IP Addresses
-        params.insert(
-            "ip4.addr".into(),
-            param::Value::Ipv4Addrs(
-                self.ips
-                    .iter()
-                    .filter(|ip| ip.is_ipv4())
-                    .map(|ip| match ip {
-                        net::IpAddr::V4(ip4) => *ip4,
-                        _ => panic!("unreachable"),
-                    })
-                    .collect(),
-            ),
-        );
+        let ipv4_addresses: Vec<_> = self.ips
+            .iter()
+            .filter(|ip| ip.is_ipv4())
+            .map(|ip| match ip {
+                net::IpAddr::V4(ip4) => *ip4,
+                _ => unreachable!(),
+            })
+            .collect();
 
-        params.insert(
-            "ip6.addr".into(),
-            param::Value::Ipv6Addrs(
-                self.ips
-                    .iter()
-                    .filter(|ip| ip.is_ipv6())
-                    .map(|ip| match ip {
-                        net::IpAddr::V6(ip6) => *ip6,
-                        _ => panic!("unreachable"),
-                    })
-                    .collect(),
-            ),
-        );
+        if !ipv4_addresses.is_empty() {
+            // Set the IP Addresses
+            params.insert(
+                "ip4.addr".into(),
+                param::Value::Ipv4Addrs(ipv4_addresses),
+            );
+        }
+
+        let ipv6_addresses: Vec<_> = self.ips
+            .iter()
+            .filter(|ip| ip.is_ipv6())
+            .map(|ip| match ip {
+                net::IpAddr::V6(ip6) => *ip6,
+                _ => unreachable!(),
+            })
+            .collect();
+
+        if !ipv6_addresses.is_empty() {
+            params.insert(
+                "ip6.addr".into(),
+                param::Value::Ipv6Addrs(ipv6_addresses),
+            );
+        }
 
         if let Some(ref name) = self.name {
             params.insert("name".into(), param::Value::String(name.clone()));

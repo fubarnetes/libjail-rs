@@ -100,3 +100,14 @@ fn test_params_nonexistent_jail() {
     r.params()
         .expect_err("Could get name for jail 424242 which should not be running.");
 }
+
+#[test]
+fn test_vnet_jail() {
+    let running = StoppedJail::new("/")
+        .name("vnet_jail")
+        .param("vnet", param::Value::Int(1))
+        .start()
+        .expect("Could not start Jail");
+
+    running.stop().expect("Could not stop Jail");
+}
