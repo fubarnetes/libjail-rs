@@ -1,8 +1,8 @@
 task:
   freebsd_instance:
     matrix:
-      image: freebsd-12-0-release-amd64
-      image: freebsd-11-2-release-amd64
+      image: freebsd-12-1-release-amd64
+      image: freebsd-11-4-release-amd64
   env:
     CIRRUS_SHELL: /bin/sh
     CODECOV_TOKEN: ENCRYPTED[4a184dabcd401205e29abdf52d0b4dde9d5029ac26ced03035962839b5f70a157cece9ff4f12812db5a72c06263a85fb]
@@ -18,9 +18,9 @@ task:
     cat $0
     echo $SHELL
     ls -lha target
-    find target/debug -maxdepth 1 -iname 'jail-*[^\.d]'
+    find target/debug/deps -maxdepth 1 -iname 'jail-*[^\.d]'
     pkg install -y kcov bash git
-    for file in target/debug/jail-*[^\.d]; do
+    for file in target/debug/deps/jail-*[^\.d]; do
       mkdir -p "target/cov/`basename $file`"
       kcov --exclude-pattern=$HOME/.cargo,/usr/lib,/usr/local/lib,/usr/src/lib/ --verify "target/cov/`basename $file`" "$file"
     done

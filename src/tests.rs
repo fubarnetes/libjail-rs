@@ -103,6 +103,23 @@ fn test_params_nonexistent_jail() {
 
 #[test]
 fn test_vnet_jail() {
+    use sysctl::{Ctl, Sysctl, CtlValue::String};
+
+    let ctl = Ctl::new("kern.osrelease")
+        .expect("Failed to read kern.osrelease sysctl")
+        .value()
+        .expect("Failed to parse kern.osrelease sysctl");
+
+    let version = match ctl {
+        String(value) => value[0..2].parse::<u32>(),
+        _ => Ok(0),
+    }.unwrap_or(0);
+
+    if version < 12 {
+        // Earlier versions do not support vnet flag, skipping.
+        return;
+    }
+
     let running = StoppedJail::new("/")
         .name("vnet_jail")
         .param("vnet", param::Value::Int(1))
