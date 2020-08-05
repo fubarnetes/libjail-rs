@@ -1,12 +1,10 @@
-use param;
-use process::Jailed;
+use crate::param;
+use crate::process::Jailed;
+use crate::running::RunningJail;
+use crate::stopped::StoppedJail;
 use rctl;
-use running::RunningJail;
-#[cfg(feature = "serialize")]
-use serde_json;
 use std::os::unix::process::ExitStatusExt;
 use std::process::Command;
-use stopped::StoppedJail;
 
 #[cfg(feature = "serialize")]
 #[test]

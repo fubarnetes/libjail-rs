@@ -1,7 +1,10 @@
 //! Module for inspection and manipulation of jail parameters
-
+use crate::JailError;
+use crate::sys::JailFlags;
+use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
 use libc;
-
+use log::trace;
+use nix;
 use std::collections::HashMap;
 use std::convert;
 use std::ffi::{CStr, CString};
@@ -9,16 +12,11 @@ use std::iter::FromIterator;
 use std::mem;
 use std::net;
 use std::slice;
-
-use sys::JailFlags;
-use JailError;
-
-use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
-#[cfg(feature = "serialize")]
-use serde::Serialize;
+use strum_macros::EnumDiscriminants;
 use sysctl::{Ctl, CtlFlags, CtlType, CtlValue, Sysctl};
 
-use nix;
+#[cfg(feature = "serialize")]
+use serde::Serialize;
 
 #[cfg(target_os = "freebsd")]
 impl Type {

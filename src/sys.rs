@@ -1,15 +1,13 @@
+use crate::{param, JailError};
+use bitflags::bitflags;
 use libc;
-
+use log::trace;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::mem;
+use std::path;
 use std::ptr;
 use std::str;
-
-use std::path;
-
-use param;
-use JailError;
 
 macro_rules! iovec {
     ($key:expr => ($value:expr, $size:expr)) => {

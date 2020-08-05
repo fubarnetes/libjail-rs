@@ -1,7 +1,7 @@
-use param;
+use crate::param;
+use failure::Fail;
 use rctl;
 use sysctl;
-
 use std::io;
 
 /// An enum for error types of the Jail.

@@ -10,6 +10,7 @@ keywords = ["freebsd", "jail", "container", "chroot"]
 categories = ["os::unix-apis", "api-bindings"]
 readme = "README.md"
 exclude = [ ".cirrus.yml", ".github", ".gitignore", ".travis.yml", "ci" ]
+edition = "2018"
 
 [lib]
 name = "jail"

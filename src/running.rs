@@ -1,10 +1,7 @@
+use crate::{param, sys, JailError, StoppedJail};
 use libc;
-use param;
+use log::trace;
 use rctl;
-use sys;
-use JailError;
-use StoppedJail;
-
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::io::{Error, ErrorKind};

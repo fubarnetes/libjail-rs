@@ -1,18 +1,14 @@
+use crate::{param, sys, JailError, RunningJail};
+use log::trace;
+use rctl;
 use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::fmt;
 use std::net;
 use std::path;
 
-use param;
-use rctl;
-use sys;
-use JailError;
-use RunningJail;
-
 #[cfg(feature = "serialize")]
 use serde::Serialize;
-
-use std::convert::TryFrom;
-use std::fmt;
 
 /// Represent a stopped jail including all information required to start it
 #[derive(Clone, PartialEq, Eq, Debug)]
