@@ -101,7 +101,7 @@ fn test_params_nonexistent_jail() {
 
 #[test]
 fn test_vnet_jail() {
-    use sysctl::{Ctl, Sysctl, CtlValue::String};
+    use sysctl::{Ctl, CtlValue::String, Sysctl};
 
     let ctl = Ctl::new("kern.osrelease")
         .expect("Failed to read kern.osrelease sysctl")

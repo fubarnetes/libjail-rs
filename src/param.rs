@@ -1,6 +1,6 @@
 //! Module for inspection and manipulation of jail parameters
-use crate::JailError;
 use crate::sys::JailFlags;
+use crate::JailError;
 use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
 use libc;
 use log::trace;
