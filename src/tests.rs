@@ -111,7 +111,8 @@ fn test_vnet_jail() {
     let version = match ctl {
         String(value) => value[0..2].parse::<u32>(),
         _ => Ok(0),
-    }.unwrap_or(0);
+    }
+    .unwrap_or(0);
 
     if version < 12 {
         // Earlier versions do not support vnet flag, skipping.
