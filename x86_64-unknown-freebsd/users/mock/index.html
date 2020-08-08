@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `mock` mod in crate `users`."><meta name="keywords" content="rust, rustlang, rust-lang, mock"><title>users::mock - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../users/index.html'><div class='logo-container'><img src='../../rust-logo.png' alt='logo'></div></a><p class='location'>Module mock</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#traits">Traits</a></li><li><a href="#types">Type Definitions</a></li></ul></div><p class='location'><a href='../index.html'>users</a></p><script>window.sidebarCurrent = {name: 'mock', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/users/mock.rs.html#1-226' title='goto source code'>[src]</a></span><span class='in-band'>Module <a href='../index.html'>users</a>::<wbr><a class="mod" href=''>mock</a></span></h1><div class='docblock'><p>Mockable users and groups.</p>
+<p>When you’re testing your code, you don’t want to actually rely on the
+system actually having various users and groups present - it’s much better
+to have a custom set of users that are <em>guaranteed</em> to be there, so you can
+test against them.</p>
+<p>This sub-library allows you to create these custom users and groups
+definitions, then access them using the same <code>Users</code> trait as in the main
+library, with few changes to your code.</p>
+<h2 id="creating-mock-users" class="section-header"><a href="#creating-mock-users">Creating Mock Users</a></h2>
+<p>The only thing a mock users table needs to know in advance is the UID of
+the current user. Aside from that, you can add users and groups with
+<code>add_user</code> and <code>add_group</code> to the table:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">users</span>::<span class="ident">mock</span>::{<span class="ident">MockUsers</span>, <span class="ident">User</span>, <span class="ident">Group</span>};
+<span class="kw">use</span> <span class="ident">users</span>::<span class="ident">os</span>::<span class="ident">unix</span>::{<span class="ident">UserExt</span>, <span class="ident">GroupExt</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">users</span> <span class="op">=</span> <span class="ident">MockUsers</span>::<span class="ident">with_current_uid</span>(<span class="number">1000</span>);
+<span class="kw">let</span> <span class="ident">bobbins</span> <span class="op">=</span> <span class="ident">User</span>::<span class="ident">new</span>(<span class="number">1000</span>, <span class="string">&quot;Bobbins&quot;</span>, <span class="number">1000</span>).<span class="ident">with_home_dir</span>(<span class="string">&quot;/home/bobbins&quot;</span>);
+<span class="ident">users</span>.<span class="ident">add_user</span>(<span class="ident">bobbins</span>);
+<span class="ident">users</span>.<span class="ident">add_group</span>(<span class="ident">Group</span>::<span class="ident">new</span>(<span class="number">100</span>, <span class="string">&quot;funkyppl&quot;</span>));</pre></div>
+<p>The exports get re-exported into the mock module, for simpler <code>use</code> lines.</p>
+<h2 id="using-mock-users" class="section-header"><a href="#using-mock-users">Using Mock Users</a></h2>
+<p>To set your program up to use either type of <code>Users</code> table, make your
+functions and structs accept a generic parameter that implements the <code>Users</code>
+trait. Then, you can pass in a value of either Cache or Mock type.</p>
+<p>Here’s a complete example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">users</span>::{<span class="ident">Users</span>, <span class="ident">UsersCache</span>, <span class="ident">User</span>};
+<span class="kw">use</span> <span class="ident">users</span>::<span class="ident">os</span>::<span class="ident">unix</span>::<span class="ident">UserExt</span>;
+<span class="kw">use</span> <span class="ident">users</span>::<span class="ident">mock</span>::<span class="ident">MockUsers</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
+
+<span class="kw">fn</span> <span class="ident">print_current_username</span><span class="op">&lt;</span><span class="ident">U</span>: <span class="ident">Users</span><span class="op">&gt;</span>(<span class="ident">users</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">U</span>) {
+    <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Current user: {:?}&quot;</span>, <span class="ident">users</span>.<span class="ident">get_current_username</span>());
+}
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">users</span> <span class="op">=</span> <span class="ident">MockUsers</span>::<span class="ident">with_current_uid</span>(<span class="number">1001</span>);
+<span class="ident">users</span>.<span class="ident">add_user</span>(<span class="ident">User</span>::<span class="ident">new</span>(<span class="number">1001</span>, <span class="string">&quot;fred&quot;</span>, <span class="number">101</span>));
+<span class="ident">print_current_username</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">users</span>);
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">actual_users</span> <span class="op">=</span> <span class="ident">UsersCache</span>::<span class="ident">new</span>();
+<span class="ident">print_current_username</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">actual_users</span>);</pre></div>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table><tr class='module-item'><td><a class="struct" href="struct.Group.html" title='users::mock::Group struct'>Group</a></td><td class='docblock-short'><p>Information about a particular group.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.MockUsers.html" title='users::mock::MockUsers struct'>MockUsers</a></td><td class='docblock-short'><p>A mocking users table that you can add your own users and groups to.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.User.html" title='users::mock::User struct'>User</a></td><td class='docblock-short'><p>Information about a particular user.</p>
+</td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table><tr class='module-item'><td><a class="trait" href="trait.Groups.html" title='users::mock::Groups trait'>Groups</a></td><td class='docblock-short'><p>Trait for producers of groups.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.Users.html" title='users::mock::Users trait'>Users</a></td><td class='docblock-short'><p>Trait for producers of users.</p>
+</td></tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table><tr class='module-item'><td><a class="type" href="type.gid_t.html" title='users::mock::gid_t type'>gid_t</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="type" href="type.uid_t.html" title='users::mock::uid_t type'>uid_t</a></td><td class='docblock-short'></td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "users";</script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

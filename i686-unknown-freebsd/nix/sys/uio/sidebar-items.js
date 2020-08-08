@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["pread",""],["preadv","Read from `fd` at `offset` filling buffers in `iov`."],["pwrite",""],["pwritev","Write to `fd` at `offset` from buffers in `iov`."],["readv",""],["writev",""]],"struct":[["IoVec",""]]});

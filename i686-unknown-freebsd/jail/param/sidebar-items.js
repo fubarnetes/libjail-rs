@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Type","Auto-generated discriminant enum variants"],["Value","An enum representing the value of a parameter."]],"fn":[["get","Get a jail parameter given the jid and the parameter name."],["get_all","Set a jail parameter given the jid, the parameter name and the value."],["set","Set a jail parameter given the jid, the parameter name and the value."]]});

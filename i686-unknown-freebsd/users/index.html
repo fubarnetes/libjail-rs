@@ -1,0 +1,120 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `users` crate."><meta name="keywords" content="rust, rustlang, rust-lang, users"><title>users - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../dark.css"><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="shortcut icon" href="../favicon.ico"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../users/index.html'><div class='logo-container'><img src='../rust-logo.png' alt='logo'></div></a><p class='location'>Crate users</p><div class="sidebar-elems"><a id='all-types' href='all.html'><p>See all users's items</p></a><div class="block items"><ul><li><a href="#reexports">Re-exports</a></li><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li><li><a href="#types">Type Definitions</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'users', ty: 'mod', relpath: '../'};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/users/lib.rs.html#1-150' title='goto source code'>[src]</a></span><span class='in-band'>Crate <a class="mod" href=''>users</a></span></h1><div class='docblock'><p>This is a library for getting information on Unix users and groups. It
+supports getting the system users, and creating your own mock tables.</p>
+<p>In Unix, each user has an individual <em>user ID</em>, and each process has an
+<em>effective user ID</em> that says which user’s permissions it is using.
+Furthermore, users can be the members of <em>groups</em>, which also have names and
+IDs. This functionality is exposed in libc, the C standard library, but as
+an unsafe Rust interface. This wrapper library provides a safe interface,
+using <a href="struct.user.html"><code>User</code></a> and <a href="struct.group.html"><code>Group</code></a> types
+and functions such as <a href="fn.get_user_by_uid.html"><code>get_user_by_uid</code></a> instead
+of low-level pointers and strings. It also offers basic caching
+functionality.</p>
+<p>It does not (yet) offer <em>editing</em> functionality; the values returned are
+read-only.</p>
+<h2 id="users" class="section-header"><a href="#users">Users</a></h2>
+<p>The function <a href="fn.get_current_uid.html"><code>get_current_uid</code></a> returns a
+<code>uid_t</code> value representing the user currently running the program, and the
+<a href="fn.get_user_by_uid.html"><code>get_user_by_uid</code></a> function scans the users
+database and returns a <code>User</code> with the user’s information. This function
+returns <code>None</code> when there is no user for that ID. The <code>uid_t</code> type is
+re-exported from the libc crate.</p>
+<p>A <a href="struct.User.html"><code>User</code></a> value has the following accessors:</p>
+<ul>
+<li><strong>uid:</strong> The user’s ID</li>
+<li><strong>name:</strong> The user’s name</li>
+<li><strong>primary_group:</strong> The ID of this user’s primary group</li>
+</ul>
+<p>Here is a complete example that prints out the current user’s name:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">users</span>::{<span class="ident">get_user_by_uid</span>, <span class="ident">get_current_uid</span>};
+
+<span class="kw">let</span> <span class="ident">user</span> <span class="op">=</span> <span class="ident">get_user_by_uid</span>(<span class="ident">get_current_uid</span>()).<span class="ident">unwrap</span>();
+<span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Hello, {}!&quot;</span>, <span class="ident">user</span>.<span class="ident">name</span>().<span class="ident">to_string_lossy</span>());</pre></div>
+<p>This code assumes (with <code>unwrap()</code>) that the user hasn’t been deleted after
+the program has started running. For arbitrary user IDs, this is <strong>not</strong> a
+safe assumption: it’s possible to delete a user while it’s running a
+program, or is the owner of files, or for that user to have never existed.
+So always check the return values!</p>
+<p>There is also a <a href="fn.get_current_username.html"><code>get_current_username</code></a>
+function, as it’s such a common operation that it deserves special
+treatment.</p>
+<h2 id="caching" class="section-header"><a href="#caching">Caching</a></h2>
+<p>Despite the above warning, the users and groups database rarely changes.
+While a short program may only need to get user information once, a
+long-running one may need to re-query the database many times, and a
+medium-length one may get away with caching the values to save on redundant
+system calls.</p>
+<p>For this reason, this crate offers a caching interface to the database,
+which offers the same functionality while holding on to every result,
+caching the information so it can be re-used.</p>
+<p>To introduce a cache, create a new
+<a href="cache/struct.UsersCache.html"><code>UsersCache</code></a>. It has functions with the
+same names as the ones from earlier. For example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">users</span>::{<span class="ident">Users</span>, <span class="ident">Groups</span>, <span class="ident">UsersCache</span>};
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cache</span> <span class="op">=</span> <span class="ident">UsersCache</span>::<span class="ident">new</span>();
+<span class="kw">let</span> <span class="ident">uid</span> <span class="op">=</span> <span class="ident">cache</span>.<span class="ident">get_current_uid</span>();
+<span class="kw">let</span> <span class="ident">user</span> <span class="op">=</span> <span class="ident">cache</span>.<span class="ident">get_user_by_uid</span>(<span class="ident">uid</span>).<span class="ident">unwrap</span>();
+<span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Hello again, {}!&quot;</span>, <span class="ident">user</span>.<span class="ident">name</span>().<span class="ident">to_string_lossy</span>());</pre></div>
+<p>This cache is <strong>only additive</strong>: it’s not possible to drop it, or erase
+selected entries, as when the database may have been modified, it’s best to
+start entirely afresh. So to accomplish this, just start using a new
+<code>UsersCache</code>.</p>
+<h2 id="groups" class="section-header"><a href="#groups">Groups</a></h2>
+<p>Finally, it’s possible to get groups in a similar manner.
+A <a href="struct.Group.html"><code>Group</code></a> has the following accessors:</p>
+<ul>
+<li><strong>gid:</strong> The group’s ID</li>
+<li><strong>name:</strong> The group’s name</li>
+</ul>
+<p>And again, a complete example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">users</span>::{<span class="ident">Users</span>, <span class="ident">Groups</span>, <span class="ident">UsersCache</span>};
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cache</span> <span class="op">=</span> <span class="ident">UsersCache</span>::<span class="ident">new</span>();
+<span class="kw">let</span> <span class="ident">group</span> <span class="op">=</span> <span class="ident">cache</span>.<span class="ident">get_group_by_name</span>(<span class="string">&quot;admin&quot;</span>).<span class="ident">expect</span>(<span class="string">&quot;No such group &#39;admin&#39;!&quot;</span>);
+<span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;The &#39;{}&#39; group has the ID {}&quot;</span>, <span class="ident">group</span>.<span class="ident">name</span>().<span class="ident">to_string_lossy</span>(), <span class="ident">group</span>.<span class="ident">gid</span>());</pre></div>
+<h2 id="caveats" class="section-header"><a href="#caveats">Caveats</a></h2>
+<p>You should be prepared for the users and groups tables to be completely
+broken: IDs shouldn’t be assumed to map to actual users and groups, and
+usernames and group names aren’t guaranteed to map either!</p>
+<p>Use the mocking module to create custom tables to test your code for these
+edge cases.</p>
+</div><h2 id='reexports' class='section-header'><a href="#reexports">Re-exports</a></h2>
+<table><tr><td><code>pub use cache::<a class="struct" href="../users/cache/struct.UsersCache.html" title="struct users::cache::UsersCache">UsersCache</a>;</code></td></tr></table><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table><tr class='module-item'><td><a class="mod" href="cache/index.html" title='users::cache mod'>cache</a></td><td class='docblock-short'><p>A cache for users and groups provided by the OS.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="mock/index.html" title='users::mock mod'>mock</a></td><td class='docblock-short'><p>Mockable users and groups.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="os/index.html" title='users::os mod'>os</a></td><td class='docblock-short'><p>OS-specific extensions to users and groups.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="switch/index.html" title='users::switch mod'>switch</a></td><td class='docblock-short'><p>Functions for switching the running process’s user or group.</p>
+</td></tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table><tr class='module-item'><td><a class="struct" href="struct.Group.html" title='users::Group struct'>Group</a></td><td class='docblock-short'><p>Information about a particular group.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.User.html" title='users::User struct'>User</a></td><td class='docblock-short'><p>Information about a particular user.</p>
+</td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table><tr class='module-item'><td><a class="trait" href="trait.Groups.html" title='users::Groups trait'>Groups</a></td><td class='docblock-short'><p>Trait for producers of groups.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.Users.html" title='users::Users trait'>Users</a></td><td class='docblock-short'><p>Trait for producers of users.</p>
+</td></tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table><tr class='module-item'><td><a class="fn" href="fn.all_users.html" title='users::all_users fn'>all_users</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td><td class='docblock-short'><p>Creates a new iterator over every user present on the system.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_current_gid.html" title='users::get_current_gid fn'>get_current_gid</a></td><td class='docblock-short'><p>Returns the group ID for the user running the process.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_current_groupname.html" title='users::get_current_groupname fn'>get_current_groupname</a></td><td class='docblock-short'><p>Returns the groupname of the user running the process.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_current_uid.html" title='users::get_current_uid fn'>get_current_uid</a></td><td class='docblock-short'><p>Returns the user ID for the user running the process.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_current_username.html" title='users::get_current_username fn'>get_current_username</a></td><td class='docblock-short'><p>Returns the username of the user running the process.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_effective_gid.html" title='users::get_effective_gid fn'>get_effective_gid</a></td><td class='docblock-short'><p>Returns the group ID for the effective user running the process.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_effective_groupname.html" title='users::get_effective_groupname fn'>get_effective_groupname</a></td><td class='docblock-short'><p>Returns the groupname of the effective user running the process.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_effective_uid.html" title='users::get_effective_uid fn'>get_effective_uid</a></td><td class='docblock-short'><p>Returns the user ID for the effective user running the process.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_effective_username.html" title='users::get_effective_username fn'>get_effective_username</a></td><td class='docblock-short'><p>Returns the username of the effective user running the process.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_group_by_gid.html" title='users::get_group_by_gid fn'>get_group_by_gid</a></td><td class='docblock-short'><p>Searches for a <code>Group</code> with the given ID in the system’s group database.
+Returns it if one is found, otherwise returns <code>None</code>.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_group_by_name.html" title='users::get_group_by_name fn'>get_group_by_name</a></td><td class='docblock-short'><p>Searches for a <code>Group</code> with the given group name in the system’s group database.
+Returns it if one is found, otherwise returns <code>None</code>.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_user_by_name.html" title='users::get_user_by_name fn'>get_user_by_name</a></td><td class='docblock-short'><p>Searches for a <code>User</code> with the given username in the system’s user database.
+Returns it if one is found, otherwise returns <code>None</code>.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_user_by_uid.html" title='users::get_user_by_uid fn'>get_user_by_uid</a></td><td class='docblock-short'><p>Searches for a <code>User</code> with the given ID in the system’s user database.
+Returns it if one is found, otherwise returns <code>None</code>.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.get_user_groups.html" title='users::get_user_groups fn'>get_user_groups</a></td><td class='docblock-short'><p>Returns groups for a provided user name and primary group id.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.group_access_list.html" title='users::group_access_list fn'>group_access_list</a></td><td class='docblock-short'><p>Returns the group access list for the current process.</p>
+</td></tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table><tr class='module-item'><td><a class="type" href="type.gid_t.html" title='users::gid_t type'>gid_t</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="type" href="type.uid_t.html" title='users::uid_t type'>uid_t</a></td><td class='docblock-short'></td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../";window.currentCrate = "users";</script><script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>

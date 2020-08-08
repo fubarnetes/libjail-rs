@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `switch_user_group` fn in crate `users`."><meta name="keywords" content="rust, rustlang, rust-lang, switch_user_group"><title>users::switch::switch_user_group - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc fn"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../users/index.html'><div class='logo-container'><img src='../../rust-logo.png' alt='logo'></div></a><div class="sidebar-elems"><p class='location'><a href='../index.html'>users</a>::<wbr><a href='index.html'>switch</a></p><script>window.sidebarCurrent = {name: 'switch_user_group', ty: 'fn', relpath: ''};</script><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/users/switch.rs.html#216-225' title='goto source code'>[src]</a></span><span class='in-band'>Function <a href='../index.html'>users</a>::<wbr><a href='index.html'>switch</a>::<wbr><a class="fn" href=''>switch_user_group</a></span></h1><pre class='rust fn'>pub fn switch_user_group(uid: <a class="type" href="../../users/mock/type.uid_t.html" title="type users::mock::uid_t">uid_t</a>, gid: <a class="type" href="../../users/mock/type.gid_t.html" title="type users::mock::gid_t">gid_t</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">IOResult</a>&lt;<a class="struct" href="../../users/switch/struct.SwitchUserGuard.html" title="struct users::switch::SwitchUserGuard">SwitchUserGuard</a>&gt;</pre><div class='docblock'><p>Sets the <strong>effective user</strong> and the <strong>effective group</strong> for the current
+scope.</p>
+<p>Typically, trying to switch to any user or group other than the ones already
+running the process requires root privileges.</p>
+<h1 id="security-considerations" class="section-header"><a href="#security-considerations">Security considerations</a></h1>
+<ul>
+<li>Because Rust does not guarantee running the destructor, it’s a good idea
+to call <a href="https://doc.rust-lang.org/std/mem/fn.drop.html"><code>std::mem::drop</code></a>
+on the guard manually in security-sensitive situations.</li>
+<li>This function switches the group before the user to prevent the user’s
+privileges being dropped before trying to change the group (look up
+<code>POS36-C</code>).</li>
+<li>This function will panic upon failing to set either walue, so the
+program does not continue executing with too many privileges.</li>
+</ul>
+<h1 id="examples" class="section-header"><a href="#examples">Examples</a></h1>
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">users</span>::<span class="ident">switch</span>::<span class="ident">switch_user_group</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">drop</span>;
+
+{
+    <span class="kw">let</span> <span class="ident">guard</span> <span class="op">=</span> <span class="ident">switch_user_group</span>(<span class="number">1001</span>, <span class="number">1001</span>);
+    <span class="comment">// current and effective user and group IDs are 1001</span>
+    <span class="ident">drop</span>(<span class="ident">guard</span>);
+}
+<span class="comment">// back to the old values</span></pre></div>
+</div></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "users";</script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

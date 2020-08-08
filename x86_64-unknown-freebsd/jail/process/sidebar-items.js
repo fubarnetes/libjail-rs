@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["Jailed","Extension to the `std::process::Command` builder to run the command in a jail."]]});
