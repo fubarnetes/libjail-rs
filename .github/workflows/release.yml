@@ -1,0 +1,29 @@
+name: Release
+
+on:
+  release:
+    types: published
+
+jobs:
+  docs:
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        box:
+          - fbsd_13_0
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up vagrant
+        run: vagrant up ${{ matrix.box }}
+
+      - name: Build documentation
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo doc; tar cf - target/doc/" | tar xv
+
+      - name: Deploy documentation to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@4.1.1
+        with:
+          branch: gh-pages
+          folder: target/doc/

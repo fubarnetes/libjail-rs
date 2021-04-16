@@ -1,0 +1,34 @@
+name: Build and Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build_and_test:
+    runs-on: macos-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+
+    strategy:
+      matrix:
+        box:
+          - fbsd_13_0
+          - fbsd_12_2
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up vagrant
+        run: vagrant up ${{ matrix.box }}
+
+      - name: Build
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo build"
+
+      - name: Test
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo test --lib"
+
+      - name: Docstests
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo test --doc"
+
+      - name: Build Docs
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo doc"
