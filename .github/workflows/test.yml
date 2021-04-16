@@ -22,13 +22,13 @@ jobs:
         run: vagrant up ${{ matrix.box }}
 
       - name: Build
-        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo build"
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; sudo cargo build"
 
       - name: Test
-        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo test --lib"
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; sudo cargo test --lib"
 
       - name: Docstests
-        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo test --doc"
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; sudo cargo test --doc"
 
       - name: Build Docs
-        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo doc"
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; sudo cargo doc"
