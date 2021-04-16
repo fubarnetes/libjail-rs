@@ -1,0 +1,40 @@
+name: Coverage
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: macos-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+
+    strategy:
+      matrix:
+        box:
+          - fbsd_13_0
+          - fbsd_12_2
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up vagrant
+        run: vagrant up ${{ matrix.box }}
+
+      - name: Install coverage prerequisites
+        run: |
+          vagrant ssh ${{ matrix.box }} -- sudo pkg install -y kcov
+          vagrant ssh ${{ matrix.box }} -- cargo install cargo-kcov
+
+      - name: Build
+        run: vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo build"
+
+      - name: Collect coverage
+        run: |
+          vagrant ssh ${{ matrix.box }} -- "cd /vagrant; cargo kcov -- --verify --exclude-pattern=/home/vagrant/.cargo,/usr/lib,/usr/local/lib,/usr/src/lib/"
+          vagrant ssh ${{ matrix.box }} -- "cd /vagrant/target; tar cf - cov/" | tar xv
+
+      - uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
+          verbose: true
