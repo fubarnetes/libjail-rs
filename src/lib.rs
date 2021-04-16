@@ -3,43 +3,14 @@
 //! it aims to provide the features exposed by the FreeBSD Jail Library
 //! [jail(3)](https://www.freebsd.org/cgi/man.cgi?query=jail&sektion=3&manpath=FreeBSD+11.1-stable)
 
-extern crate byteorder;
-
-#[macro_use]
-extern crate failure;
-
-extern crate libc;
-
-#[macro_use]
-extern crate log;
-
-extern crate sysctl;
-
-#[macro_use]
-mod sys;
-
-#[macro_use]
-extern crate bitflags;
-
-extern crate nix;
-
-extern crate rctl;
-
-extern crate strum;
-
-#[macro_use]
-extern crate strum_macros;
-
-#[cfg(feature = "serialize")]
-extern crate serde;
-
-#[cfg(feature = "serialize")]
-extern crate serde_json;
-
+use log::trace;
 use std::collections::HashMap;
 use std::convert;
 use std::net;
 use std::path;
+
+#[macro_use]
+mod sys;
 
 mod error;
 pub use error::JailError;

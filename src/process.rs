@@ -1,11 +1,8 @@
 //! Jail-Specific extensions to the `std::process` module
-
-use std::process;
-
+use crate::{JailError, RunningJail};
+use log::trace;
 use std::os::unix::process::CommandExt;
-
-use JailError;
-use RunningJail;
+use std::process;
 
 /// Extension to the `std::process::Command` builder to run the command in a
 /// jail.

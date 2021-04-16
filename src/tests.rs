@@ -1,12 +1,10 @@
-use param;
-use process::Jailed;
+use crate::param;
+use crate::process::Jailed;
+use crate::running::RunningJail;
+use crate::stopped::StoppedJail;
 use rctl;
-use running::RunningJail;
-#[cfg(feature = "serialize")]
-use serde_json;
 use std::os::unix::process::ExitStatusExt;
 use std::process::Command;
-use stopped::StoppedJail;
 
 #[cfg(feature = "serialize")]
 #[test]
@@ -103,7 +101,7 @@ fn test_params_nonexistent_jail() {
 
 #[test]
 fn test_vnet_jail() {
-    use sysctl::{Ctl, Sysctl, CtlValue::String};
+    use sysctl::{Ctl, CtlValue::String, Sysctl};
 
     let ctl = Ctl::new("kern.osrelease")
         .expect("Failed to read kern.osrelease sysctl")
@@ -113,7 +111,8 @@ fn test_vnet_jail() {
     let version = match ctl {
         String(value) => value[0..2].parse::<u32>(),
         _ => Ok(0),
-    }.unwrap_or(0);
+    }
+    .unwrap_or(0);
 
     if version < 12 {
         // Earlier versions do not support vnet flag, skipping.

@@ -1,18 +1,14 @@
+use crate::{param, sys, JailError, RunningJail};
+use log::trace;
+use rctl;
 use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::fmt;
 use std::net;
 use std::path;
 
-use param;
-use rctl;
-use sys;
-use JailError;
-use RunningJail;
-
 #[cfg(feature = "serialize")]
 use serde::Serialize;
-
-use std::convert::TryFrom;
-use std::fmt;
 
 /// Represent a stopped jail including all information required to start it
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -108,7 +104,8 @@ impl StoppedJail {
 
         let mut params = self.params.clone();
 
-        let ipv4_addresses: Vec<_> = self.ips
+        let ipv4_addresses: Vec<_> = self
+            .ips
             .iter()
             .filter(|ip| ip.is_ipv4())
             .map(|ip| match ip {
@@ -119,13 +116,12 @@ impl StoppedJail {
 
         if !ipv4_addresses.is_empty() {
             // Set the IP Addresses
-            params.insert(
-                "ip4.addr".into(),
-                param::Value::Ipv4Addrs(ipv4_addresses),
-            );
+            let value = param::Value::Ipv4Addrs(ipv4_addresses);
+            params.insert("ip4.addr".into(), value);
         }
 
-        let ipv6_addresses: Vec<_> = self.ips
+        let ipv6_addresses: Vec<_> = self
+            .ips
             .iter()
             .filter(|ip| ip.is_ipv6())
             .map(|ip| match ip {
@@ -135,10 +131,8 @@ impl StoppedJail {
             .collect();
 
         if !ipv6_addresses.is_empty() {
-            params.insert(
-                "ip6.addr".into(),
-                param::Value::Ipv6Addrs(ipv6_addresses),
-            );
+            let value = param::Value::Ipv6Addrs(ipv6_addresses);
+            params.insert("ip6.addr".into(), value);
         }
 
         if let Some(ref name) = self.name {
