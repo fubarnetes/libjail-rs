@@ -1,95 +1,78 @@
 use crate::param;
-use failure::Fail;
 use rctl;
 use std::io;
 use sysctl;
+use thiserror::Error;
 
 /// An enum for error types of the Jail.
-///
-/// Implements the `Fail` trait of the `failure` crate.
-#[derive(Fail, Debug)]
+#[derive(Error, Debug)]
 pub enum JailError {
-    #[fail(display = "An IO Error occurred: {:?}", _0)]
-    IoError(#[cause] io::Error),
+    #[error("An IO Error occurred: {0:?}")]
+    IoError(io::Error),
 
-    #[fail(
-        display = "jail_get syscall failed. The error message returned was: {}",
-        _0
-    )]
+    #[error("jail_get syscall failed. The error message returned was: {0}")]
     JailGetError(String),
 
-    #[fail(
-        display = "jail_set syscall failed. The error message returned was: {}",
-        _0
-    )]
+    #[error("jail_set syscall failed. The error message returned was: {0}")]
     JailSetError(String),
 
-    #[fail(
-        display = "jail_attach syscall failed. The error message returned was: {}",
-        _0
-    )]
-    JailAttachError(#[cause] io::Error),
+    #[error("jail_attach syscall failed. The error message returned was: {0}")]
+    JailAttachError(io::Error),
 
-    #[fail(display = "invalid return code from jail_remove")]
+    #[error("invalid return code from jail_remove")]
     JailRemoveFailed,
 
-    #[fail(display = "Path not given")]
+    #[error("Path not given")]
     PathNotGiven,
 
-    #[fail(display = "No such parameter: {}", _0)]
+    #[error("No such parameter: {0}")]
     NoSuchParameter(String),
 
-    #[fail(display = "Generic sysctl error: {:?}", _0)]
-    SysctlError(#[cause] sysctl::SysctlError),
+    #[error("Generic sysctl error: {0:?}")]
+    SysctlError(sysctl::SysctlError),
 
-    #[fail(display = "Could not get parameter type: {:?}", _0)]
-    ParameterTypeError(#[cause] sysctl::SysctlError),
+    #[error("Could not get parameter type: {0:?}")]
+    ParameterTypeError(sysctl::SysctlError),
 
-    #[fail(display = "Could not get string parameter length: {:?}", _0)]
-    ParameterStringLengthError(#[cause] sysctl::SysctlError),
+    #[error("Could not get string parameter length: {0:?}")]
+    ParameterStringLengthError(sysctl::SysctlError),
 
-    #[fail(display = "Could not get structure parameter length: {:?}", _0)]
-    ParameterStructLengthError(#[cause] sysctl::SysctlError),
+    #[error("Could not get structure parameter length: {0:?}")]
+    ParameterStructLengthError(sysctl::SysctlError),
 
-    #[fail(display = "Cannot set tunable parameter '{}' at runtime.", _0)]
+    #[error("Cannot set tunable parameter '{0}' at runtime.")]
     ParameterTunableError(String),
 
-    #[fail(display = "Could not determine maximum number of IP addresses per family")]
-    JailMaxAfIpsFailed(#[cause] sysctl::SysctlError),
+    #[error("Could not determine maximum number of IP addresses per family")]
+    JailMaxAfIpsFailed(sysctl::SysctlError),
 
-    #[fail(
-        display = "Parameter string length returned ('{}') is not a number.",
-        _0
-    )]
+    #[error("Parameter string length returned ('{0}') is not a number.")]
     ParameterLengthNaN(String),
 
-    #[fail(display = "Parameter type not supported: {:?}", _0)]
+    #[error("Parameter type not supported: {0:?}")]
     ParameterTypeUnsupported(sysctl::CtlType),
 
-    #[fail(
-        display = "Unexpected parameter type for '{}': expected {:?}, but got {:?}",
-        name, expected, got
-    )]
+    #[error("Unexpected parameter type for '{name}': expected {expected:?}, but got {got:?}")]
     UnexpectedParameterType {
         name: String,
         expected: sysctl::CtlType,
         got: param::Value,
     },
 
-    #[fail(display = "Failed to unpack parameter.")]
+    #[error("Failed to unpack parameter.")]
     ParameterUnpackError,
 
-    #[fail(display = "Could not serialize value to bytes")]
+    #[error("Could not serialize value to bytes")]
     SerializeFailed,
 
-    #[fail(display = "RCTL Error: {}", _0)]
-    RctlError(#[cause] rctl::Error),
+    #[error("RCTL Error: {0}")]
+    RctlError(rctl::Error),
 
-    #[fail(display = "Jail must have a name if RCTL limits are to be set")]
+    #[error("Jail must have a name if RCTL limits are to be set")]
     UnnamedButLimited,
 
-    #[fail(display = "Error creating a CString: {:?}", _0)]
-    CStringError(#[cause] std::ffi::NulError),
+    #[error("Error creating a CString: {0:?}")]
+    CStringError(std::ffi::NulError),
 }
 
 impl JailError {
