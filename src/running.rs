@@ -1,7 +1,5 @@
 use crate::{param, sys, JailError, StoppedJail};
-use libc;
 use log::trace;
-use rctl;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::io::{Error, ErrorKind};
@@ -119,7 +117,7 @@ impl RunningJail {
     /// #
     /// # running.kill();
     /// ```
-    pub fn name(self: &RunningJail) -> Result<String, JailError> {
+    pub fn name(&self) -> Result<String, JailError> {
         trace!("RunningJail::name({:?})", self);
         self.param("name")?.unpack_string()
     }
@@ -143,7 +141,7 @@ impl RunningJail {
     /// #
     /// # running.kill();
     /// ```
-    pub fn path(self: &RunningJail) -> Result<path::PathBuf, JailError> {
+    pub fn path(&self) -> Result<path::PathBuf, JailError> {
         trace!("RunningJail::path({:?})", self);
         Ok(self.param("path")?.unpack_string()?.into())
     }
@@ -167,7 +165,7 @@ impl RunningJail {
     /// #
     /// # running.kill();
     /// ```
-    pub fn hostname(self: &RunningJail) -> Result<String, JailError> {
+    pub fn hostname(&self) -> Result<String, JailError> {
         trace!("RunningJail::hostname({:?})", self);
         self.param("host.hostname")?.unpack_string()
     }
@@ -190,7 +188,7 @@ impl RunningJail {
     /// assert_eq!(ips[1], "fe80::2".parse::<IpAddr>().unwrap());
     /// # running.kill();
     /// ```
-    pub fn ips(self: &RunningJail) -> Result<Vec<net::IpAddr>, JailError> {
+    pub fn ips(&self) -> Result<Vec<net::IpAddr>, JailError> {
         trace!("RunningJail::ips({:?})", self);
         let mut ips: Vec<net::IpAddr> = vec![];
         ips.extend(
@@ -224,7 +222,7 @@ impl RunningJail {
     /// # println!("jail uuid: {:?}", hostuuid);
     /// # running.kill();
     /// ```
-    pub fn param(self: &Self, name: &str) -> Result<param::Value, JailError> {
+    pub fn param(&self, name: &str) -> Result<param::Value, JailError> {
         trace!("RunningJail::param({:?}, name={})", self, name);
         param::get(self.jid, name)
     }
@@ -250,7 +248,7 @@ impl RunningJail {
     /// );
     /// # running.kill().expect("could not stop jail");
     /// ```
-    pub fn params(self: &Self) -> Result<HashMap<String, param::Value>, JailError> {
+    pub fn params(&self) -> Result<HashMap<String, param::Value>, JailError> {
         trace!("RunningJail::params({:?})", self);
         param::get_all(self.jid)
     }
@@ -271,7 +269,7 @@ impl RunningJail {
     /// # assert_eq!(readback, param::Value::Int(1));
     /// # running.kill();
     /// ```
-    pub fn param_set(self: &Self, name: &str, value: param::Value) -> Result<(), JailError> {
+    pub fn param_set(&self, name: &str, value: param::Value) -> Result<(), JailError> {
         trace!(
             "RunningJail::param_set({:?}, name={:?}, value={:?})",
             self,
@@ -294,14 +292,14 @@ impl RunningJail {
     /// #     .start().unwrap();
     /// running.kill();
     /// ```
-    pub fn kill(self: RunningJail) -> Result<(), JailError> {
+    pub fn kill(self) -> Result<(), JailError> {
         trace!("RunningJail::kill({:?})", self);
         let name = self.name()?;
         sys::jail_remove(self.jid)?;
 
         // Tear down RCTL rules
         {
-            if &name == "" {
+            if name.is_empty() {
                 return Ok(());
             }
 

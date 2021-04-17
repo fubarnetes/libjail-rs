@@ -1,6 +1,5 @@
 use crate::{param, sys, JailError, RunningJail};
 use log::trace;
-use rctl;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
@@ -70,9 +69,11 @@ impl StoppedJail {
     /// ```
     pub fn new<P: Into<path::PathBuf> + fmt::Debug>(path: P) -> StoppedJail {
         trace!("StoppedJail::new(path={:?})", path);
-        let mut ret: StoppedJail = Default::default();
-        ret.path = Some(path.into());
-        ret
+
+        StoppedJail {
+            path: Some(path.into()),
+            ..Default::default()
+        }
     }
 
     /// Start the jail
@@ -90,7 +91,7 @@ impl StoppedJail {
     /// let running = stopped.start().unwrap();
     /// # running.kill();
     /// ```
-    pub fn start(self: StoppedJail) -> Result<RunningJail, JailError> {
+    pub fn start(self) -> Result<RunningJail, JailError> {
         trace!("StoppedJail::start({:?})", self);
         let path = match self.path {
             None => return Err(JailError::PathNotGiven),
@@ -181,7 +182,7 @@ impl StoppedJail {
     ///
     /// assert_eq!(stopped.name, Some("test_stopped_name".to_string()));
     /// ```
-    pub fn name<S: Into<String> + fmt::Debug>(mut self: Self, name: S) -> Self {
+    pub fn name<S: Into<String> + fmt::Debug>(mut self, name: S) -> Self {
         trace!("StoppedJail::start({:?}, name={:?})", self, name);
         self.name = Some(name.into());
         self
@@ -200,7 +201,7 @@ impl StoppedJail {
     ///
     /// assert_eq!(stopped.hostname, Some("example.com".to_string()));
     /// ```
-    pub fn hostname<S: Into<String> + fmt::Debug>(mut self: Self, hostname: S) -> Self {
+    pub fn hostname<S: Into<String> + fmt::Debug>(mut self, hostname: S) -> Self {
         trace!("StoppedJail::hostname({:?}, hostname={:?})", self, hostname);
         self.hostname = Some(hostname.into());
         self
@@ -219,7 +220,7 @@ impl StoppedJail {
     ///     .param("allow.raw_sockets", param::Value::Int(1));
     /// ```
     pub fn param<S: Into<String> + fmt::Debug>(
-        mut self: Self,
+        mut self,
         param: S,
         value: param::Value,
     ) -> Self {
@@ -276,7 +277,7 @@ impl StoppedJail {
     ///     .ip("127.0.1.1".parse().expect("could not parse 127.0.1.1"))
     ///     .ip("fe80::2".parse().expect("could not parse ::1"));
     /// ```
-    pub fn ip(mut self: Self, ip: net::IpAddr) -> Self {
+    pub fn ip(mut self, ip: net::IpAddr) -> Self {
         trace!("StoppedJail::ip({:?}, ip={:?})", self, ip);
         self.ips.push(ip);
         self
