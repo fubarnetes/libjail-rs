@@ -257,7 +257,7 @@ impl Value {
         let mut bytes: Vec<u8> = vec![];
 
         // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
-        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::useless_conversion))]
         match self {
             Value::String(s) => {
                 bytes = CString::new(s.as_str())
@@ -277,12 +277,14 @@ impl Value {
             Value::Int(v) => {
                 bytes.write_int::<LittleEndian>((*v).into(), mem::size_of::<libc::c_int>())
             }
-            Value::Long(v) => bytes.write_int::<LittleEndian>(*v, mem::size_of::<libc::c_long>()),
+            Value::Long(v) => {
+                bytes.write_int::<LittleEndian>((*v).into(), mem::size_of::<libc::c_long>())
+            }
             Value::Uint(v) => {
                 bytes.write_uint::<LittleEndian>((*v).into(), mem::size_of::<libc::c_uint>())
             }
             Value::Ulong(v) => {
-                bytes.write_uint::<LittleEndian>(*v, mem::size_of::<libc::c_ulong>())
+                bytes.write_uint::<LittleEndian>((*v).into(), mem::size_of::<libc::c_ulong>())
             }
             Value::Ipv4Addrs(addrs) => {
                 for addr in addrs {
@@ -419,14 +421,15 @@ impl Value {
     /// ```
     pub fn unpack_u64(self) -> Result<u64, JailError> {
         trace!("Value::unpack_u64({:?})", self);
-        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
+        // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::useless_conversion))]
         match self {
             Value::U64(v) => Ok(v),
             Value::U32(v) => Ok(v.into()),
             Value::U16(v) => Ok(v.into()),
             Value::U8(v) => Ok(v.into()),
             Value::Uint(v) => Ok(v.into()),
-            Value::Ulong(v) => Ok(v),
+            Value::Ulong(v) => Ok(v.into()),
             _ => Err(JailError::ParameterUnpackError),
         }
     }
@@ -456,7 +459,8 @@ impl Value {
     /// ```
     pub fn unpack_i64(self) -> Result<i64, JailError> {
         trace!("Value::unpack_i64({:?})", self);
-        #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
+        // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::useless_conversion))]
         match self {
             Value::S64(v) => Ok(v),
             Value::S32(v) => Ok(v.into()),
@@ -467,7 +471,7 @@ impl Value {
             Value::U8(v) => Ok(v.into()),
             Value::Uint(v) => Ok(v.into()),
             Value::Int(v) => Ok(v.into()),
-            Value::Long(v) => Ok(v),
+            Value::Long(v) => Ok(v.into()),
             _ => Err(JailError::ParameterUnpackError),
         }
     }
