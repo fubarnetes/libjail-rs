@@ -219,11 +219,7 @@ impl StoppedJail {
     /// let mut stopped = StoppedJail::new("/rescue")
     ///     .param("allow.raw_sockets", param::Value::Int(1));
     /// ```
-    pub fn param<S: Into<String> + fmt::Debug>(
-        mut self,
-        param: S,
-        value: param::Value,
-    ) -> Self {
+    pub fn param<S: Into<String> + fmt::Debug>(mut self, param: S, value: param::Value) -> Self {
         trace!(
             "StoppedJail::param({:?}, param={:?}, value={:?})",
             self,

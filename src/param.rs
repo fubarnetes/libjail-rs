@@ -61,9 +61,18 @@ impl Type {
         trace!("Type::is_numeric({:?})", self);
         matches!(
             self,
-            Type::S8  | Type::S16  | Type::S32  | Type::S64 |
-            Type::U8  | Type::U16  | Type::U32  | Type::U64 |
-            Type::Int | Type::Long | Type::Uint | Type::Ulong
+            Type::S8
+                | Type::S16
+                | Type::S32
+                | Type::S64
+                | Type::U8
+                | Type::U16
+                | Type::U32
+                | Type::U64
+                | Type::Int
+                | Type::Long
+                | Type::Uint
+                | Type::Ulong
         )
     }
 
@@ -82,8 +91,7 @@ impl Type {
         trace!("Type::is_signed({:?})", self);
         matches!(
             self,
-            Type::S8  | Type::S16 | Type::S32 | Type::S64 |
-            Type::Int | Type::Long
+            Type::S8 | Type::S16 | Type::S32 | Type::S64 | Type::Int | Type::Long
         )
     }
 
@@ -269,9 +277,7 @@ impl Value {
             Value::Int(v) => {
                 bytes.write_int::<LittleEndian>((*v).into(), mem::size_of::<libc::c_int>())
             }
-            Value::Long(v) => {
-                bytes.write_int::<LittleEndian>(*v, mem::size_of::<libc::c_long>())
-            }
+            Value::Long(v) => bytes.write_int::<LittleEndian>(*v, mem::size_of::<libc::c_long>()),
             Value::Uint(v) => {
                 bytes.write_uint::<LittleEndian>((*v).into(), mem::size_of::<libc::c_uint>())
             }
