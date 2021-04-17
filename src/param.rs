@@ -2,11 +2,8 @@
 use crate::sys::JailFlags;
 use crate::JailError;
 use byteorder::{ByteOrder, LittleEndian, NetworkEndian, WriteBytesExt};
-use libc;
 use log::trace;
-use nix;
 use std::collections::HashMap;
-use std::convert;
 use std::ffi::{CStr, CString};
 use std::iter::FromIterator;
 use std::mem;
@@ -49,10 +46,7 @@ impl Type {
     /// ```
     pub fn is_string(&self) -> bool {
         trace!("Type::is_string({:?})", self);
-        match self {
-            Type::String => true,
-            _ => false,
-        }
+        matches!(self, Type::String)
     }
 
     /// Check if this type is numeric
@@ -65,21 +59,12 @@ impl Type {
     /// ```
     pub fn is_numeric(&self) -> bool {
         trace!("Type::is_numeric({:?})", self);
-        match self {
-            Type::U8 => true,
-            Type::U16 => true,
-            Type::U32 => true,
-            Type::U64 => true,
-            Type::S8 => true,
-            Type::S16 => true,
-            Type::S32 => true,
-            Type::S64 => true,
-            Type::Int => true,
-            Type::Long => true,
-            Type::Uint => true,
-            Type::Ulong => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            Type::S8  | Type::S16  | Type::S32  | Type::S64 |
+            Type::U8  | Type::U16  | Type::U32  | Type::U64 |
+            Type::Int | Type::Long | Type::Uint | Type::Ulong
+        )
     }
 
     /// Check if this type is signed
@@ -95,15 +80,11 @@ impl Type {
     /// ```
     pub fn is_signed(&self) -> bool {
         trace!("Type::is_signed({:?})", self);
-        match self {
-            Type::S8 => true,
-            Type::S16 => true,
-            Type::S32 => true,
-            Type::S64 => true,
-            Type::Int => true,
-            Type::Long => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            Type::S8  | Type::S16 | Type::S32 | Type::S64 |
+            Type::Int | Type::Long
+        )
     }
 
     /// Check if this type is an IP address list
@@ -118,11 +99,7 @@ impl Type {
     /// ```
     pub fn is_ip(&self) -> bool {
         trace!("Type::is_ip({:?})", self);
-        match self {
-            Type::Ipv4Addrs => true,
-            Type::Ipv6Addrs => true,
-            _ => false,
-        }
+        matches!(self, Type::Ipv4Addrs | Type::Ipv6Addrs)
     }
 
     /// Check if this type is an IPv4 address list
@@ -136,10 +113,7 @@ impl Type {
     /// ```
     pub fn is_ipv4(&self) -> bool {
         trace!("Type::is_ipv4({:?})", self);
-        match self {
-            Type::Ipv4Addrs => true,
-            _ => false,
-        }
+        matches!(self, Type::Ipv4Addrs)
     }
 
     /// Check if this type is an IPv4 address list
@@ -153,10 +127,7 @@ impl Type {
     /// ```
     pub fn is_ipv6(&self) -> bool {
         trace!("Type::is_ipv6({:?})", self);
-        match self {
-            Type::Ipv6Addrs => true,
-            _ => false,
-        }
+        matches!(self, Type::Ipv6Addrs)
     }
 }
 
@@ -180,10 +151,10 @@ impl Type {
 //     }
 // }
 
-impl convert::Into<CtlType> for Type {
-    fn into(self: Type) -> CtlType {
-        trace!("Type::into::<CtlType>({:?})", self);
-        match self {
+impl From<Type> for CtlType {
+    fn from(t: Type) -> CtlType {
+        trace!("CtlType::from::<Type>({:?})", t);
+        match t {
             Type::String => CtlType::String,
             Type::U8 => CtlType::U8,
             Type::U16 => CtlType::U16,
@@ -273,7 +244,7 @@ impl Value {
 
     /// Format the value into a vector of bytes as expected by the jail
     /// parameter API.
-    pub fn as_bytes(self) -> Result<Vec<u8>, JailError> {
+    pub fn as_bytes(&self) -> Result<Vec<u8>, JailError> {
         trace!("Value::as_bytes({:?})", self);
         let mut bytes: Vec<u8> = vec![];
 
@@ -281,31 +252,31 @@ impl Value {
         #[cfg_attr(feature = "cargo-clippy", allow(identity_conversion))]
         match self {
             Value::String(s) => {
-                bytes = CString::new(s)
+                bytes = CString::new(s.as_str())
                     .expect("Could not create CString from value")
                     .to_bytes_with_nul()
                     .to_vec();
                 Ok(())
             }
-            Value::U8(v) => bytes.write_u8(v),
-            Value::S8(v) => bytes.write_i8(v),
-            Value::U16(v) => bytes.write_u16::<LittleEndian>(v),
-            Value::U32(v) => bytes.write_u32::<LittleEndian>(v),
-            Value::U64(v) => bytes.write_u64::<LittleEndian>(v),
-            Value::S16(v) => bytes.write_i16::<LittleEndian>(v),
-            Value::S32(v) => bytes.write_i32::<LittleEndian>(v),
-            Value::S64(v) => bytes.write_i64::<LittleEndian>(v),
+            Value::U8(v) => bytes.write_u8(*v),
+            Value::S8(v) => bytes.write_i8(*v),
+            Value::U16(v) => bytes.write_u16::<LittleEndian>(*v),
+            Value::U32(v) => bytes.write_u32::<LittleEndian>(*v),
+            Value::U64(v) => bytes.write_u64::<LittleEndian>(*v),
+            Value::S16(v) => bytes.write_i16::<LittleEndian>(*v),
+            Value::S32(v) => bytes.write_i32::<LittleEndian>(*v),
+            Value::S64(v) => bytes.write_i64::<LittleEndian>(*v),
             Value::Int(v) => {
-                bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_int>())
+                bytes.write_int::<LittleEndian>((*v).into(), mem::size_of::<libc::c_int>())
             }
             Value::Long(v) => {
-                bytes.write_int::<LittleEndian>(v.into(), mem::size_of::<libc::c_long>())
+                bytes.write_int::<LittleEndian>(*v, mem::size_of::<libc::c_long>())
             }
             Value::Uint(v) => {
-                bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_uint>())
+                bytes.write_uint::<LittleEndian>((*v).into(), mem::size_of::<libc::c_uint>())
             }
             Value::Ulong(v) => {
-                bytes.write_uint::<LittleEndian>(v.into(), mem::size_of::<libc::c_ulong>())
+                bytes.write_uint::<LittleEndian>(*v, mem::size_of::<libc::c_ulong>())
             }
             Value::Ipv4Addrs(addrs) => {
                 for addr in addrs {
@@ -449,7 +420,7 @@ impl Value {
             Value::U16(v) => Ok(v.into()),
             Value::U8(v) => Ok(v.into()),
             Value::Uint(v) => Ok(v.into()),
-            Value::Ulong(v) => Ok(v.into()),
+            Value::Ulong(v) => Ok(v),
             _ => Err(JailError::ParameterUnpackError),
         }
     }
@@ -490,7 +461,7 @@ impl Value {
             Value::U8(v) => Ok(v.into()),
             Value::Uint(v) => Ok(v.into()),
             Value::Int(v) => Ok(v.into()),
-            Value::Long(v) => Ok(v.into()),
+            Value::Long(v) => Ok(v),
             _ => Err(JailError::ParameterUnpackError),
         }
     }
@@ -690,7 +661,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
                  retrieved is not a multiple of the size of in_addr."
             );
 
-            #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
+            #[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_ptr_alignment))]
             let ips: Vec<net::Ipv4Addr> =
                 unsafe { slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count) }
                     .iter()
@@ -713,7 +684,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
                  retrieved is not a multiple of the size of in_addr."
             );
 
-            #[cfg_attr(feature = "cargo-clippy", allow(cast_ptr_alignment))]
+            #[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_ptr_alignment))]
             let ips: Vec<net::Ipv6Addr> =
                 unsafe { slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count) }
                     .iter()

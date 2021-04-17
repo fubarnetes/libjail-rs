@@ -1,6 +1,5 @@
 use crate::{param, JailError};
 use bitflags::bitflags;
-use libc;
 use log::trace;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
