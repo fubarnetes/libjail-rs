@@ -1,15 +1,7 @@
-extern crate jail;
-
-#[macro_use]
-extern crate log;
-
-extern crate pretty_env_logger;
-extern crate rctl;
-
-use std::process::Command;
-
+use log::{error, info, warn};
 use jail::param;
 use jail::process::Jailed;
+use std::process::Command;
 
 fn main() {
     pretty_env_logger::init();

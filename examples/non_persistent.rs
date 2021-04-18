@@ -1,4 +1,3 @@
-extern crate jail;
 use jail::process::Jailed;
 use std::process::Command;
 
