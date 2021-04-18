@@ -1,10 +1,6 @@
-extern crate jail;
-extern crate rctl;
-
-use std::process::{Command, Stdio};
-
 use jail::process::Jailed;
 use std::{thread, time};
+use std::process::{Command, Stdio};
 
 fn main() {
     if !rctl::State::check().is_enabled() {
