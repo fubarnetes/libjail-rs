@@ -1,6 +1,6 @@
-use log::{error, info, warn};
 use jail::param;
 use jail::process::Jailed;
+use log::{error, info, warn};
 use std::process::Command;
 
 fn main() {
