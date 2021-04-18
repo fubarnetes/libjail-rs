@@ -1,6 +1,6 @@
 use jail::process::Jailed;
-use std::{thread, time};
 use std::process::{Command, Stdio};
+use std::{thread, time};
 
 fn main() {
     if !rctl::State::check().is_enabled() {
