@@ -33,7 +33,7 @@ log="0.4"
 sysctl = "~0.4.0"
 nix= "^0.20.0"
 rctl = "0.1.0"
-strum = "0.20.0"
+strum = "0.21.0"
 strum_macros = "0.20.1"
 serde = { version="1.0", features = ["derive"], optional=true}
 serde_json = { version="1.0", optional=true }
