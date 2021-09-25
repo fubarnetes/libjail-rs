@@ -2,6 +2,19 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Changed
+* Switched from Cirrus-CI to GitHub Actions
+* Deprecated `failure`, moved to `thiserror` (#96)
+* Updated examples to Rust 2018 and deprecated `prettytable-rs` in favor of `cli-table` (#101)
+* Updated `nix` to version 0.22.0
+* Updated `strum_macros` to version 0.20.1
+* Updated `strum` to version 0.20.0
+* Updated `pretty_env_logger` used in examples to 0.4
+* Multiple style and clippy fixes (#100)
+
+## Bugfixes
+* Do not pass empty ip4.addr and ip6.addr params (#79)
+* Fixed build on ARM/POWER (#94)
 ## [0.1.1] - 2019-10-19
 
 ### Changed
