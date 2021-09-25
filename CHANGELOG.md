@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - ReleaseDate
+## [0.2.0] - 2021-09-25
 
 ## Changed
 * Switched from Cirrus-CI to GitHub Actions
