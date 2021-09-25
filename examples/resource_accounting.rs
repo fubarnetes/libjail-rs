@@ -1,9 +1,5 @@
-extern crate jail;
-extern crate rctl;
-
-use std::process::{Command, Stdio};
-
 use jail::process::Jailed;
+use std::process::{Command, Stdio};
 use std::{thread, time};
 
 fn main() {

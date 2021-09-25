@@ -1,14 +1,10 @@
-extern crate jail;
+#[cfg(feature = "serialize")]
+use log::info;
 
-#[macro_use]
-extern crate log;
-
-extern crate pretty_env_logger;
-extern crate rctl;
-#[cfg(features = "serialize")]
-extern crate serde_json;
-
+#[cfg(feature = "serialize")]
 use jail::param;
+
+#[cfg(feature = "serialize")]
 use std::str::FromStr;
 
 #[cfg(feature = "serialize")]

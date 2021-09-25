@@ -1,18 +1,25 @@
-extern crate jail;
-
-extern crate pretty_env_logger;
-
-#[macro_use]
-extern crate prettytable;
-
+use cli_table::{print_stdout, Table, WithTitle};
 use jail::RunningJail;
-use prettytable::{Cell, Row, Table};
+
+#[derive(Table)]
+struct Jail {
+    #[table(title = "JID")]
+    jid: i32,
+
+    #[table(title = "IP Address")]
+    ips: String,
+
+    #[table(title = "Hostname")]
+    hostname: String,
+
+    #[table(title = "Path")]
+    path: String,
+}
 
 fn main() {
     pretty_env_logger::init();
 
-    let mut table = Table::new();
-    table.add_row(row!["JID", "IP Address", "Hostname", "Path"]);
+    let mut jails = Vec::new();
 
     for j in RunningJail::all() {
         let ips: Vec<String> = j
@@ -22,13 +29,15 @@ fn main() {
             .map(|ip| format!("{}", ip))
             .collect();
 
-        table.add_row(Row::new(vec![
-            Cell::new(&format!("{}", j.jid)),
-            Cell::new(&ips.join("\n")),
-            Cell::new(&format!("{}", j.hostname().unwrap())),
-            Cell::new(j.path().unwrap().to_str().unwrap()),
-        ]));
+        let jail = Jail {
+            jid: j.jid,
+            ips: ips.join("\n"),
+            hostname: j.hostname().unwrap(),
+            path: j.path().unwrap().to_str().unwrap().to_string(),
+        };
+
+        jails.push(jail);
     }
 
-    table.printstd();
+    print_stdout(jails.with_title()).unwrap();
 }
