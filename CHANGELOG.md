@@ -6,9 +6,10 @@
 * Switched from Cirrus-CI to GitHub Actions
 * Deprecated `failure`, moved to `thiserror` (#96)
 * Updated examples to Rust 2018 and deprecated `prettytable-rs` in favor of `cli-table` (#101)
-* Updated `nix` to version 0.22.0
-* Updated `strum_macros` to version 0.20.1
-* Updated `strum` to version 0.20.0
+* Updated `rctl` to version 0.2
+* Updated `nix` to version 0.22
+* Updated `strum_macros` to version 0.21.1
+* Updated `strum` to version 0.21.0
 * Updated `pretty_env_logger` used in examples to 0.4
 * Multiple style and clippy fixes (#100)
 
