@@ -11,7 +11,6 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.synced_folder ".", "/vagrant", type: "rsync",
-    rsync__exclude: ".git/",
     rsync__auto: true
 
   config.vm.provision "shell", inline: <<-SHELL
