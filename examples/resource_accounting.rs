@@ -15,11 +15,13 @@ fn main() {
     println!("created new jail with JID {}", running.jid);
 
     println!("Let's run a command that burns CPU cycles in the jail!");
-    Command::new("/usr/bin/yes")
+    Command::new("/usr/bin/true")
         .jail(&running)
         .stdout(Stdio::null())
         .spawn()
-        .expect("Failed to execute command in jail");
+        .expect("Failed to execute command in jail")
+        .wait()
+        .expect("/usr/bin/true failed?");
 
     for _ in 1..10 {
         thread::sleep(time::Duration::from_millis(1000));
