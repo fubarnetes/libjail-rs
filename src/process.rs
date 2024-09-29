@@ -2,7 +2,9 @@
 use crate::{JailError, RunningJail};
 use log::trace;
 use std::os::unix::process::CommandExt;
-use std::process;
+use std::process::Command as StdCommand;
+#[cfg(feature = "tokio")]
+use tokio::process::Command as TokioCommand;
 
 /// Extension to the `std::process::Command` builder to run the command in a
 /// jail.
@@ -34,13 +36,32 @@ pub trait Jailed {
     /// Sets the child process to be executed within a jail. This translates
     /// to calling `jail_attach` in the child process. Failure in the
     /// `jail_attach` call will cause the spawn to fail.
-    fn jail(&mut self, jail: &RunningJail) -> &mut process::Command;
+    fn jail(&mut self, jail: &RunningJail) -> &mut Self;
 }
 
 #[cfg(target_os = "freebsd")]
-impl Jailed for process::Command {
-    fn jail(&mut self, jail: &RunningJail) -> &mut process::Command {
-        trace!("process::Command::jail({:?}, jail={:?})", self, jail);
+impl Jailed for StdCommand {
+    fn jail(&mut self, jail: &RunningJail) -> &mut Self {
+        trace!("std::process::Command::jail({:?}, jail={:?})", self, jail);
+        let jail = *jail;
+        unsafe {
+            self.pre_exec(move || {
+                trace!("pre_exec handler: attaching");
+                jail.attach().map_err(|err| match err {
+                    JailError::JailAttachError(e) => e,
+                    _ => panic!("jail.attach() failed with unexpected error"),
+                })
+            });
+        }
+
+        self
+    }
+}
+
+#[cfg(all(target_os = "freebsd", feature = "tokio"))]
+impl Jailed for TokioCommand {
+    fn jail(&mut self, jail: &RunningJail) -> &mut Self {
+        trace!("tokio::process::Command::jail({:?}, jail={:?})", self, jail);
         let jail = *jail;
         unsafe {
             self.pre_exec(move || {
