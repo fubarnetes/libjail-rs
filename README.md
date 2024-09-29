@@ -8,8 +8,6 @@
 releases](https://img.shields.io/librariesio/release/cargo/jail.svg?style=flat-square)](https://libraries.io/cargo/jail/)
 [![Crates.io](https://img.shields.io/crates/d/jail.svg?style=flat-square)](https://crates.io/crates/jail)
 [![Crates.io](https://img.shields.io/crates/l/jail.svg?style=flat-square)](https://crates.io/crates/jail)
-[![BuildBot](https://buildbot.bsd.builders/badges/libjail-rs.svg)](https://buildbot.bsd.builders/#/builders/2)
-[![Travis](https://img.shields.io/travis/fubarnetes/libjail-rs/master.svg?style=flat-square)](https://travis-ci.org/fubarnetes/libjail-rs)
 [![Docs: x86_64-unknown-freebsd](https://img.shields.io/badge/docs-x86__64--unknown--freebsd-blue.svg?style=flat-square)](https://fubarnetes.github.io/libjail-rs/x86_64-unknown-freebsd/jail/index.html)
 [![Docs: i686-unknown-freebsd](https://img.shields.io/badge/docs-i686--unknown--freebsd-blue.svg?style=flat-square)](https://fubarnetes.github.io/libjail-rs/i686-unknown-freebsd/jail/index.html)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffubarnetes%2Flibjail-rs.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffubarnetes%2Flibjail-rs?ref=badge_shield)

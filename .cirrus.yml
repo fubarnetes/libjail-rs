@@ -1,0 +1,96 @@
+setup: &SETUP
+  env:
+    HOME: /tmp # cargo needs it
+    RUSTFLAGS: -D warnings
+  setup_script:
+    - pkg install -y llvm
+    - fetch https://sh.rustup.rs -o rustup.sh
+    - sh rustup.sh -y --profile=minimal --default-toolchain $VERSION
+
+task:
+  env:
+    HOME: /tmp  # cargo cache needs it
+    TARGET: x86_64-unknown-freebsd
+    VERSION: nightly
+  matrix:
+    - name: FreeBSD 13 amd64 nightly
+      freebsd_instance:
+        image: freebsd-13-4-release-amd64
+    - name: FreeBSD 14 amd64 nightly
+      freebsd_instance:
+        image: freebsd-14-1-release-amd64-ufs
+    - name: FreeBSD 14 amd64 stable
+      env:
+        VERSION: 1.66.0
+      freebsd_instance:
+        image: freebsd-14-1-release-amd64-ufs
+    - name: FreeBSD 14 i686 nightly
+      # Test i686 FreeBSD in 32-bit emulation on a 64-bit host.
+      env:
+        TARGET: i686-unknown-freebsd
+        # Can't use nightly on i686 due to
+        # https://github.com/rust-lang/rust/issues/130677
+        VERSION: 1.66.0
+      freebsd_instance:
+        image: freebsd-14-1-release-amd64-ufs
+  << : *SETUP
+  extra_setup_script:
+    - . $HOME/.cargo/env
+    - if [ "$TARGET" = "i686-unknown-freebsd" ]; then rustup target add --toolchain $VERSION i686-unknown-freebsd; fi
+  cargo_cache:
+    folder: $HOME/.cargo/registry
+    fingerprint_script: cat Cargo.lock || echo ""
+  test_script:
+    - . $HOME/.cargo/env
+    - cargo test --all-features --target $TARGET
+  bench_script:
+    - . $HOME/.cargo/env
+    - if [ "$VERSION" = "nightly" ]; then
+      cargo test --all-features --benches
+    - fi
+  doc_script:
+    - . $HOME/.cargo/env
+    - cargo doc --target $TARGET --no-deps --all-features
+  before_cache_script: rm -rf $HOME/.cargo/registry/index 
+
+# Stuff that doesn't need to be repeated for each target, env, and toolchain
+lint_task:
+  name: Lint
+  env:
+    HOME: /tmp  # cargo cache needs it
+    VERSION: nightly
+  freebsd_instance:
+    image: freebsd-14-1-release-amd64-ufs
+  << : *SETUP
+  extra_setup_script:
+    - . $HOME/.cargo/env
+    - rustup component add --toolchain $VERSION clippy
+    - rustup component add --toolchain $VERSION rustfmt
+  cargo_cache:
+    folder: $HOME/.cargo/registry
+  clippy_script:
+    - . $HOME/.cargo/env
+    - cargo clippy --all-targets -- -D warnings
+    - cargo clippy --all-targets --all-features -- -D warnings
+  audit_script:
+    - . $HOME/.cargo/env
+    # install ca_root_nss due to https://github.com/rustsec/rustsec/issues/1137
+    - pkg install -y ca_root_nss cargo-audit
+    - cargo audit
+  minver_script:
+    - . $HOME/.cargo/env
+    - cargo update -Zdirect-minimal-versions
+    - cargo check --all-features --all-targets --all
+  before_cache_script: rm -rf $CARGO_HOME/registry/index
+
+task:
+  name: Style
+  container:
+    image: rustlang/rust:nightly
+  cargo_cache:
+    folder: $HOME/.cargo/registry
+    fingerprint_script: cat Cargo.lock || echo ""
+  fmt_script:
+    - rustup component add rustfmt
+    - cargo fmt --all -- --check --color=never
+  before_cache_script: rm -rf $HOME/.cargo/registry/index
