@@ -9,6 +9,7 @@ documentation = "https://docs.rs/jail"
 keywords = ["freebsd", "jail", "container", "chroot"]
 categories = ["os::unix-apis", "api-bindings"]
 readme = "README.md"
+rust-version = "1.66"
 exclude = [ ".cirrus.yml", ".github", ".gitignore", ".travis.yml", "ci" ]
 edition = "2018"
 
