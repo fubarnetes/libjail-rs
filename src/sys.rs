@@ -104,7 +104,7 @@ pub fn jail_create(
 
     let jid = unsafe {
         libc::jail_set(
-            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov[..].as_mut_ptr(),
             jiov.len() as u32,
             JailFlags::CREATE.bits,
         )
@@ -137,7 +137,7 @@ pub fn jail_exists(jid: i32) -> bool {
 
     let retjid = unsafe {
         libc::jail_get(
-            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov[..].as_mut_ptr(),
             jiov.len() as u32,
             JailFlags::empty().bits,
         )
@@ -162,7 +162,7 @@ pub fn jail_clearpersist(jid: i32) -> Result<(), JailError> {
 
     let jid = unsafe {
         libc::jail_set(
-            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov[..].as_mut_ptr(),
             jiov.len() as u32,
             JailFlags::UPDATE.bits,
         )
@@ -204,7 +204,7 @@ pub fn jail_getid(name: &str) -> Result<i32, JailError> {
 
     let jid = unsafe {
         libc::jail_get(
-            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov[..].as_mut_ptr(),
             jiov.len() as u32,
             JailFlags::empty().bits,
         )
@@ -239,7 +239,7 @@ pub fn jail_nextjid(lastjid: i32) -> Result<i32, JailError> {
 
     let jid = unsafe {
         libc::jail_get(
-            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov[..].as_mut_ptr(),
             jiov.len() as u32,
             JailFlags::empty().bits,
         )
