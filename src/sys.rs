@@ -39,7 +39,7 @@ macro_rules! iovec {
 }
 
 bitflags! {
-    pub struct JailFlags : i32 {
+    pub(crate) struct JailFlags : i32 {
         /// Create the Jail if it doesn't exist
         const CREATE = 0x01;
 
@@ -106,7 +106,7 @@ pub fn jail_create(
         libc::jail_set(
             jiov[..].as_mut_ptr(),
             jiov.len() as u32,
-            JailFlags::CREATE.bits,
+            JailFlags::CREATE.bits(),
         )
     };
 
@@ -139,7 +139,7 @@ pub fn jail_exists(jid: i32) -> bool {
         libc::jail_get(
             jiov[..].as_mut_ptr(),
             jiov.len() as u32,
-            JailFlags::empty().bits,
+            JailFlags::empty().bits(),
         )
     };
 
@@ -164,7 +164,7 @@ pub fn jail_clearpersist(jid: i32) -> Result<(), JailError> {
         libc::jail_set(
             jiov[..].as_mut_ptr(),
             jiov.len() as u32,
-            JailFlags::UPDATE.bits,
+            JailFlags::UPDATE.bits(),
         )
     };
 
@@ -206,7 +206,7 @@ pub fn jail_getid(name: &str) -> Result<i32, JailError> {
         libc::jail_get(
             jiov[..].as_mut_ptr(),
             jiov.len() as u32,
-            JailFlags::empty().bits,
+            JailFlags::empty().bits(),
         )
     };
 
@@ -241,7 +241,7 @@ pub fn jail_nextjid(lastjid: i32) -> Result<i32, JailError> {
         libc::jail_get(
             jiov[..].as_mut_ptr(),
             jiov.len() as u32,
-            JailFlags::empty().bits,
+            JailFlags::empty().bits(),
         )
     };
 

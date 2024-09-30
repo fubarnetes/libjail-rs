@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] - ReleaseDate
+
+## Changed
+* Updated MSRV to 1.80.0 (#132)
+* Updated `nix`, `strum`, and `bitflags` dependencies (#132)
+
 ## [0.2.0] - 2021-09-25
 
 ## Changed
