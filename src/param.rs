@@ -288,8 +288,7 @@ impl Value {
             }
             Value::Ipv4Addrs(addrs) => {
                 for addr in addrs {
-                    let s_addr = nix::sys::socket::Ipv4Addr::from_std(addr).0.s_addr;
-                    let host_u32 = u32::from_be(s_addr);
+                    let host_u32 = addr.to_bits();
                     bytes
                         .write_u32::<NetworkEndian>(host_u32)
                         .map_err(|_| JailError::SerializeFailed)?;
