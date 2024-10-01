@@ -5,6 +5,9 @@
 ## Changed
 * Updated MSRV to 1.80.0 (#132)
 * Updated `nix`, `strum`, and `bitflags` dependencies (#132)
+* Updated `sysctl` dependency (#135).
+* Updated `rctl` dependency, and in the process eliminated a transitive
+  dependency on the `users` crate.  (#136).
 
 ## [0.2.0] - 2021-09-25
 
