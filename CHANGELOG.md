@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - ReleaseDate
+## [0.3.0] - 2024-10-01
 
 ## Changed
 * Updated MSRV to 1.80.0 (#132)
