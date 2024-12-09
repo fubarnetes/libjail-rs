@@ -45,7 +45,7 @@ rctl = "0.3.0"
 strum_macros = "0.26.0"
 serde = { version="1.0.113", features = ["derive"], optional=true}
 serde_json = { version="1.0", optional=true }
-thiserror = "1.0.32"
+thiserror = "2.0.6"
 
 [dev-dependencies]
 cli-table = { version="0.4", default-features=false, features=["derive"] }
