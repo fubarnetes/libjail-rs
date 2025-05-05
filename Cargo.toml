@@ -40,7 +40,7 @@ byteorder = "1.4.3"
 libc = "0.2.155"
 log="0.4.8"
 sysctl = ">=0.5.4, < 0.7"
-nix = { version = "0.29.0", default-features = false, features = ["socket"] }
+nix = { version = "0.30.1", default-features = false, features = ["socket"] }
 rctl = "0.3.0"
 strum_macros = "0.26.0"
 serde = { version="1.0.113", features = ["derive"], optional=true}
