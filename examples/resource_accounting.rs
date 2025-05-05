@@ -26,12 +26,12 @@ fn main() {
     for _ in 1..10 {
         thread::sleep(time::Duration::from_millis(1000));
         match running.racct_statistics() {
-            Ok(stats) => println!("Resource accounting statistics: {:#?}", stats),
+            Ok(stats) => println!("Resource accounting statistics: {stats:#?}"),
             Err(jail::JailError::RctlError(rctl::Error::InvalidKernelState(state))) => {
-                println!("Resource accounting is reported as {}", state)
+                println!("Resource accounting is reported as {state}")
             }
             Err(e) => {
-                println!("Other Error: {}", e);
+                println!("Other Error: {e}");
                 break;
             }
         };

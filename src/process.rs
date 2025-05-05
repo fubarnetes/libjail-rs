@@ -40,7 +40,7 @@ pub trait Jailed {
 #[cfg(target_os = "freebsd")]
 impl Jailed for process::Command {
     fn jail(&mut self, jail: &RunningJail) -> &mut process::Command {
-        trace!("process::Command::jail({:?}, jail={:?})", self, jail);
+        trace!("process::Command::jail({self:?}, jail={jail:?})");
         let jail = *jail;
         unsafe {
             self.pre_exec(move || {

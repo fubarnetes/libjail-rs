@@ -49,11 +49,11 @@ fn main() {
     info!("output: {}", String::from_utf8_lossy(&output.stdout));
 
     match running.racct_statistics() {
-        Ok(stats) => info!("Resource accounting statistics: {:#?}", stats),
+        Ok(stats) => info!("Resource accounting statistics: {stats:#?}"),
         Err(jail::JailError::RctlError(rctl::Error::InvalidKernelState(state))) => {
-            warn!("Resource accounting is reported as {}", state)
+            warn!("Resource accounting is reported as {state}")
         }
-        Err(e) => error!("Other Error: {}", e),
+        Err(e) => error!("Other Error: {e}"),
     };
     info!("jid before restart: {}", running.jid);
     let running = running.restart().unwrap();

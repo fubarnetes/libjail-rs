@@ -68,7 +68,7 @@ impl StoppedJail {
     /// let j = StoppedJail::new("/rescue");
     /// ```
     pub fn new<P: Into<path::PathBuf> + fmt::Debug>(path: P) -> StoppedJail {
-        trace!("StoppedJail::new(path={:?})", path);
+        trace!("StoppedJail::new(path={path:?})");
 
         StoppedJail {
             path: Some(path.into()),
@@ -92,7 +92,7 @@ impl StoppedJail {
     /// # running.kill();
     /// ```
     pub fn start(self) -> Result<RunningJail, JailError> {
-        trace!("StoppedJail::start({:?})", self);
+        trace!("StoppedJail::start({self:?})");
         let path = match self.path {
             None => return Err(JailError::PathNotGiven),
             Some(ref p) => p.clone(),
@@ -183,7 +183,7 @@ impl StoppedJail {
     /// assert_eq!(stopped.name, Some("test_stopped_name".to_string()));
     /// ```
     pub fn name<S: Into<String> + fmt::Debug>(mut self, name: S) -> Self {
-        trace!("StoppedJail::start({:?}, name={:?})", self, name);
+        trace!("StoppedJail::start({self:?}, name={name:?})");
         self.name = Some(name.into());
         self
     }
@@ -202,7 +202,7 @@ impl StoppedJail {
     /// assert_eq!(stopped.hostname, Some("example.com".to_string()));
     /// ```
     pub fn hostname<S: Into<String> + fmt::Debug>(mut self, hostname: S) -> Self {
-        trace!("StoppedJail::hostname({:?}, hostname={:?})", self, hostname);
+        trace!("StoppedJail::hostname({self:?}, hostname={hostname:?})");
         self.hostname = Some(hostname.into());
         self
     }
@@ -220,12 +220,7 @@ impl StoppedJail {
     ///     .param("allow.raw_sockets", param::Value::Int(1));
     /// ```
     pub fn param<S: Into<String> + fmt::Debug>(mut self, param: S, value: param::Value) -> Self {
-        trace!(
-            "StoppedJail::param({:?}, param={:?}, value={:?})",
-            self,
-            param,
-            value
-        );
+        trace!("StoppedJail::param({self:?}, param={param:?}, value={value:?})");
         self.params.insert(param.into(), value);
         self
     }
@@ -251,11 +246,7 @@ impl StoppedJail {
         action: rctl::Action,
     ) -> Self {
         trace!(
-            "StoppedJail::limit({:?}, resource={:?}, limit={:?}, action={:?})",
-            self,
-            resource,
-            limit,
-            action
+            "StoppedJail::limit({self:?}, resource={resource:?}, limit={limit:?}, action={action:?})"
         );
         self.limits.push((resource, limit, action));
         self
@@ -274,7 +265,7 @@ impl StoppedJail {
     ///     .ip("fe80::2".parse().expect("could not parse ::1"));
     /// ```
     pub fn ip(mut self, ip: net::IpAddr) -> Self {
-        trace!("StoppedJail::ip({:?}, ip={:?})", self, ip);
+        trace!("StoppedJail::ip({self:?}, ip={ip:?})");
         self.ips.push(ip);
         self
     }
