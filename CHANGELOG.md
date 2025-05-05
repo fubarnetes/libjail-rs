@@ -1,5 +1,9 @@
 # Changelog
 
+### Changed
+- Broadened the dependency spec on Nix, for better compatibility with
+  downstream consumers that have various requirements. (#157)
+
 ## [0.3.0] - 2024-10-01
 
 ## Changed
