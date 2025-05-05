@@ -119,7 +119,7 @@ fn iterate_100_jails(b: &mut Bencher) {
     let mut running_jails: Vec<RunningJail> = (1..100)
         .map(|i| {
             StoppedJail::new("/rescue")
-                .name(format!("benchjail_iterate_{}", i))
+                .name(format!("benchjail_iterate_{i}"))
                 .start()
                 .expect("failed to start jail")
         })

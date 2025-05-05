@@ -2,7 +2,7 @@ use crate::{param, sys, JailError, StoppedJail};
 use log::trace;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::net;
 use std::path;
 
@@ -46,7 +46,7 @@ impl RunningJail {
     ///     .expect("No Jail with this JID");
     /// ```
     pub fn from_jid(jid: i32) -> Option<RunningJail> {
-        trace!("RunningJail::from_jid({})", jid);
+        trace!("RunningJail::from_jid({jid})");
         match sys::jail_exists(jid) {
             true => Some(Self::from_jid_unchecked(jid)),
             false => None,
@@ -73,7 +73,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn from_jid_unchecked(jid: i32) -> RunningJail {
-        trace!("RunningJail::from_jid_unchecked({})", jid);
+        trace!("RunningJail::from_jid_unchecked({jid})");
         RunningJail { jid }
     }
 
@@ -98,7 +98,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn from_name(name: &str) -> Result<RunningJail, JailError> {
-        trace!("RunningJail::from_name({})", name);
+        trace!("RunningJail::from_name({name})");
         sys::jail_getid(name).map(RunningJail::from_jid_unchecked)
     }
 
@@ -118,7 +118,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn name(&self) -> Result<String, JailError> {
-        trace!("RunningJail::name({:?})", self);
+        trace!("RunningJail::name({self:?})");
         self.param("name")?.unpack_string()
     }
 
@@ -142,7 +142,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn path(&self) -> Result<path::PathBuf, JailError> {
-        trace!("RunningJail::path({:?})", self);
+        trace!("RunningJail::path({self:?})");
         Ok(self.param("path")?.unpack_string()?.into())
     }
 
@@ -166,7 +166,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn hostname(&self) -> Result<String, JailError> {
-        trace!("RunningJail::hostname({:?})", self);
+        trace!("RunningJail::hostname({self:?})");
         self.param("host.hostname")?.unpack_string()
     }
 
@@ -189,7 +189,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn ips(&self) -> Result<Vec<net::IpAddr>, JailError> {
-        trace!("RunningJail::ips({:?})", self);
+        trace!("RunningJail::ips({self:?})");
         let mut ips: Vec<net::IpAddr> = vec![];
         ips.extend(
             self.param("ip4.addr")?
@@ -223,7 +223,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn param(&self, name: &str) -> Result<param::Value, JailError> {
-        trace!("RunningJail::param({:?}, name={})", self, name);
+        trace!("RunningJail::param({self:?}, name={name})");
         param::get(self.jid, name)
     }
 
@@ -249,7 +249,7 @@ impl RunningJail {
     /// # running.kill().expect("could not stop jail");
     /// ```
     pub fn params(&self) -> Result<HashMap<String, param::Value>, JailError> {
-        trace!("RunningJail::params({:?})", self);
+        trace!("RunningJail::params({self:?})");
         param::get_all(self.jid)
     }
 
@@ -270,12 +270,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn param_set(&self, name: &str, value: param::Value) -> Result<(), JailError> {
-        trace!(
-            "RunningJail::param_set({:?}, name={:?}, value={:?})",
-            self,
-            name,
-            value
-        );
+        trace!("RunningJail::param_set({self:?}, name={name:?}, value={value:?})");
         param::set(self.jid, name, value)
     }
 
@@ -293,7 +288,7 @@ impl RunningJail {
     /// running.kill();
     /// ```
     pub fn kill(self) -> Result<(), JailError> {
-        trace!("RunningJail::kill({:?})", self);
+        trace!("RunningJail::kill({self:?})");
         let name = self.name()?;
         sys::jail_remove(self.jid)?;
 
@@ -340,7 +335,7 @@ impl RunningJail {
     /// # running.kill().unwrap();
     /// ```
     pub fn save(self: &RunningJail) -> Result<StoppedJail, JailError> {
-        trace!("RunningJail::save({:?})", self);
+        trace!("RunningJail::save({self:?})");
         let mut stopped = StoppedJail::new(self.path()?);
 
         stopped.name = self.name().ok();
@@ -396,7 +391,7 @@ impl RunningJail {
     /// //assert_eq!(stopped.hostname, Some("testjail_save.example.com".into()));
     /// ```
     pub fn stop(self: RunningJail) -> Result<StoppedJail, JailError> {
-        trace!("RunningJail::stop({:?})", self);
+        trace!("RunningJail::stop({self:?})");
         let stopped = self.save()?;
         self.kill()?;
 
@@ -424,7 +419,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn restart(self: RunningJail) -> Result<RunningJail, JailError> {
-        trace!("RunningJail::restart({:?})", self);
+        trace!("RunningJail::restart({self:?})");
         let stopped = self.stop()?;
         stopped.start()
     }
@@ -477,7 +472,7 @@ impl RunningJail {
     /// # running.kill();
     /// ```
     pub fn racct_statistics(&self) -> Result<HashMap<rctl::Resource, usize>, JailError> {
-        trace!("RunningJail::racct_statistics({:?})", self);
+        trace!("RunningJail::racct_statistics({self:?})");
         // First let's try to get the RACCT statistics in the happy path
         rctl::Subject::jail_name(self.name()?)
             .usage()
@@ -486,15 +481,12 @@ impl RunningJail {
 
     /// Jail the current process into the given jail.
     pub fn attach(&self) -> Result<(), JailError> {
-        trace!("RunningJail::attach({:?})", self);
+        trace!("RunningJail::attach({self:?})");
         let ret = unsafe { libc::jail_attach(self.jid) };
         match ret {
             0 => Ok(()),
             -1 => Err(Error::last_os_error()),
-            _ => Err(Error::new(
-                ErrorKind::Other,
-                "invalid return value from jail_attach",
-            )),
+            _ => Err(Error::other("invalid return value from jail_attach")),
         }
         .map_err(JailError::JailAttachError)
     }
@@ -536,7 +528,7 @@ impl RunningJail {
     /// jail.kill().expect_err("Jail should be dead by now.");
     /// ```
     pub fn defer_cleanup(&self) -> Result<(), JailError> {
-        trace!("RunningJail::defer_cleanup({:?})", self);
+        trace!("RunningJail::defer_cleanup({self:?})");
         sys::jail_clearpersist(self.jid)
     }
 }
@@ -580,7 +572,7 @@ impl Iterator for RunningJails {
     type Item = RunningJail;
 
     fn next(&mut self) -> Option<RunningJail> {
-        trace!("RunningJails::next({:?})", self);
+        trace!("RunningJails::next({self:?})");
         let jid = match sys::jail_nextjid(self.lastjid) {
             Ok(j) => j,
             Err(_) => return None,

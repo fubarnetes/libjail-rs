@@ -29,7 +29,7 @@ impl Type {
     /// assert_eq!(Type::of_param("ip6.addr").unwrap(), Type::Ipv6Addrs);
     /// ```
     pub fn of_param(name: &str) -> Result<Type, JailError> {
-        trace!("Type::of_param(name={:?})", name);
+        trace!("Type::of_param(name={name:?})");
         let (ctl_type, _, _) = info(name)?;
 
         ctltype_to_type(name, ctl_type)
@@ -45,7 +45,7 @@ impl Type {
     /// assert_eq!(Type::Int.is_string(), false);
     /// ```
     pub fn is_string(&self) -> bool {
-        trace!("Type::is_string({:?})", self);
+        trace!("Type::is_string({self:?})");
         matches!(self, Type::String)
     }
 
@@ -58,7 +58,7 @@ impl Type {
     /// assert_eq!(Type::String.is_numeric(), false);
     /// ```
     pub fn is_numeric(&self) -> bool {
-        trace!("Type::is_numeric({:?})", self);
+        trace!("Type::is_numeric({self:?})");
         matches!(
             self,
             Type::S8
@@ -88,7 +88,7 @@ impl Type {
     /// assert_eq!(Type::String.is_signed(), false);
     /// ```
     pub fn is_signed(&self) -> bool {
-        trace!("Type::is_signed({:?})", self);
+        trace!("Type::is_signed({self:?})");
         matches!(
             self,
             Type::S8 | Type::S16 | Type::S32 | Type::S64 | Type::Int | Type::Long
@@ -106,7 +106,7 @@ impl Type {
     /// assert_eq!(Type::String.is_ip(), false);
     /// ```
     pub fn is_ip(&self) -> bool {
-        trace!("Type::is_ip({:?})", self);
+        trace!("Type::is_ip({self:?})");
         matches!(self, Type::Ipv4Addrs | Type::Ipv6Addrs)
     }
 
@@ -120,7 +120,7 @@ impl Type {
     /// assert_eq!(Type::Ipv6Addrs.is_ipv4(), false);
     /// ```
     pub fn is_ipv4(&self) -> bool {
-        trace!("Type::is_ipv4({:?})", self);
+        trace!("Type::is_ipv4({self:?})");
         matches!(self, Type::Ipv4Addrs)
     }
 
@@ -134,7 +134,7 @@ impl Type {
     /// assert_eq!(Type::Ipv4Addrs.is_ipv6(), false);
     /// ```
     pub fn is_ipv6(&self) -> bool {
-        trace!("Type::is_ipv6({:?})", self);
+        trace!("Type::is_ipv6({self:?})");
         matches!(self, Type::Ipv6Addrs)
     }
 }
@@ -161,7 +161,7 @@ impl Type {
 
 impl From<Type> for CtlType {
     fn from(t: Type) -> CtlType {
-        trace!("CtlType::from::<Type>({:?})", t);
+        trace!("CtlType::from::<Type>({t:?})");
         match t {
             Type::String => CtlType::String,
             Type::U8 => CtlType::U8,
@@ -246,14 +246,14 @@ impl Value {
     /// assert!(Value::Int(42).get_type().is_signed());
     /// ```
     pub fn get_type(&self) -> Type {
-        trace!("Value::get_type({:?})", self);
+        trace!("Value::get_type({self:?})");
         self.into()
     }
 
     /// Format the value into a vector of bytes as expected by the jail
     /// parameter API.
     pub fn as_bytes(&self) -> Result<Vec<u8>, JailError> {
-        trace!("Value::as_bytes({:?})", self);
+        trace!("Value::as_bytes({self:?})");
         let mut bytes: Vec<u8> = vec![];
 
         // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
@@ -332,7 +332,7 @@ impl Value {
     /// not_ipv4_addrs.unpack_ipv4().unwrap();
     /// ```
     pub fn unpack_ipv4(self) -> Result<Vec<net::Ipv4Addr>, JailError> {
-        trace!("Value::unpack_ipv4({:?})", self);
+        trace!("Value::unpack_ipv4({self:?})");
         match self {
             Value::Ipv4Addrs(v) => Ok(v),
             _ => Err(JailError::ParameterUnpackError),
@@ -367,7 +367,7 @@ impl Value {
     /// rfc1918.unpack_ipv6().unwrap();
     /// ```
     pub fn unpack_ipv6(self) -> Result<Vec<net::Ipv6Addr>, JailError> {
-        trace!("Value::unpack_ipv6({:?})", self);
+        trace!("Value::unpack_ipv6({self:?})");
         match self {
             Value::Ipv6Addrs(v) => Ok(v),
             _ => Err(JailError::ParameterUnpackError),
@@ -392,7 +392,7 @@ impl Value {
     /// not_a_string.unpack_string().unwrap();
     /// ```
     pub fn unpack_string(self) -> Result<String, JailError> {
-        trace!("Value::unpack_string({:?})", self);
+        trace!("Value::unpack_string({self:?})");
         match self {
             Value::String(v) => Ok(v),
             _ => Err(JailError::ParameterUnpackError),
@@ -419,7 +419,7 @@ impl Value {
     /// assert!(Value::S64(64i64).unpack_u64().is_err());
     /// ```
     pub fn unpack_u64(self) -> Result<u64, JailError> {
-        trace!("Value::unpack_u64({:?})", self);
+        trace!("Value::unpack_u64({self:?})");
         // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
         #[allow(clippy::useless_conversion)]
         match self {
@@ -457,7 +457,7 @@ impl Value {
     /// assert!(Value::U64(64u64).unpack_i64().is_err());
     /// ```
     pub fn unpack_i64(self) -> Result<i64, JailError> {
-        trace!("Value::unpack_i64({:?})", self);
+        trace!("Value::unpack_i64({self:?})");
         // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
         #[allow(clippy::useless_conversion)]
         match self {
@@ -478,9 +478,9 @@ impl Value {
 
 #[cfg(target_os = "freebsd")]
 fn info(name: &str) -> Result<(CtlType, CtlFlags, usize), JailError> {
-    trace!("info({:?})", name);
+    trace!("info({name:?})");
     // Get parameter type
-    let ctlname = format!("security.jail.param.{}", name);
+    let ctlname = format!("security.jail.param.{name}");
 
     let ctl = Ctl::new(&ctlname).map_err(|_| JailError::NoSuchParameter(name.to_string()))?;
 
@@ -529,7 +529,7 @@ fn info(name: &str) -> Result<(CtlType, CtlFlags, usize), JailError> {
 
 #[cfg(target_os = "freebsd")]
 fn ctltype_to_type(name: &str, ctl_type: CtlType) -> Result<Type, JailError> {
-    trace!("ctltype_to_type({:?}, ctl_type={:?})", name, ctl_type);
+    trace!("ctltype_to_type({name:?}, ctl_type={ctl_type:?})");
     let param_type = match ctl_type {
         CtlType::Int => Type::Int,
         CtlType::S64 => Type::S64,
@@ -576,7 +576,7 @@ fn ctltype_to_type(name: &str, ctl_type: CtlType) -> Result<Type, JailError> {
 /// ```
 #[cfg(target_os = "freebsd")]
 pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
-    trace!("get(jid={}, name={:?})", jid, name);
+    trace!("get(jid={jid}, name={name:?})");
     let (paramtype, _, typesize) = info(name)?;
 
     // ip4.addr and ip6.addr are arrays, which can be up to
@@ -751,7 +751,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
 /// # jail.kill().expect("could not stop jail");
 /// ```
 pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
-    trace!("set(jid={}, name={:?}, value={:?})", jid, name, value);
+    trace!("set(jid={jid}, name={name:?}, value={value:?})");
     let (ctltype, ctl_flags, _) = info(name)?;
 
     // Check if this is a tunable.
@@ -818,7 +818,7 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
 /// # jail.kill().expect("could not stop jail");
 /// ```
 pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
-    trace!("get_all(jid={})", jid);
+    trace!("get_all(jid={jid})");
 
     // If we have individual filters on each of these, we'll end up with a
     // very large type_length_limit. We can quickly check names against a vec

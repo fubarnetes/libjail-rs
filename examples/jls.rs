@@ -22,12 +22,7 @@ fn main() {
     let mut jails = Vec::new();
 
     for j in RunningJail::all() {
-        let ips: Vec<String> = j
-            .ips()
-            .unwrap()
-            .iter()
-            .map(|ip| format!("{}", ip))
-            .collect();
+        let ips: Vec<String> = j.ips().unwrap().iter().map(|ip| format!("{ip}")).collect();
 
         let jail = Jail {
             jid: j.jid,

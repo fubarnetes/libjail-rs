@@ -75,7 +75,7 @@ fn test_rctl_yes() {
     assert!(output.status.code().is_none());
     assert!(output.status.signal() == Some(9));
 
-    println!("{:?}", output);
+    println!("{output:?}");
 
     running.stop().expect("Could not stop Jail");
 }
