@@ -49,15 +49,16 @@ fn test_serializing_jail() {
     }
 }
 
+/// Test that rctl limits are actually effective, by limiting a process's Wallclock.
 #[test]
-fn test_rctl_yes() {
+fn test_rctl_limit() {
     if !rctl::State::check().is_enabled() {
         // If we don't have RCTL, let's just skip this test.
         return;
     }
 
     let running = StoppedJail::new("/")
-        .name("testjail_rctl_yes")
+        .name("testjail_rctl_limit")
         .limit(
             rctl::Resource::Wallclock,
             rctl::Limit::amount(1),
@@ -67,10 +68,11 @@ fn test_rctl_yes() {
         .expect("Could not start Jail");
 
     // this should hang until killed by the limit
-    let output = Command::new("/usr/bin/yes")
+    let output = Command::new("/bin/sleep")
+        .arg("10")
         .jail(&running)
         .output()
-        .expect("Failed to start yes command");
+        .expect("Failed to start sleep command");
 
     assert!(output.status.code().is_none());
     assert!(output.status.signal() == Some(9));
