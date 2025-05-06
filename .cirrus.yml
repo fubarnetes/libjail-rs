@@ -6,12 +6,15 @@ setup: &SETUP
     - pkg install -y llvm
     - fetch https://sh.rustup.rs -o rustup.sh
     - sh rustup.sh -y --profile=minimal --default-toolchain $VERSION
+    - . $HOME/.cargo/env
+    - rustup toolchain install --profile=minimal $TEST_VERSION
 
 task:
   env:
     HOME: /tmp  # cargo cache needs it
     TARGET: x86_64-unknown-freebsd
     VERSION: nightly
+    TEST_VERSION: nightly
   matrix:
     - name: FreeBSD 13 amd64 nightly
       freebsd_instance:
@@ -22,6 +25,7 @@ task:
     - name: FreeBSD 14 amd64 stable
       env:
         VERSION: 1.80.0
+        TEST_VERSION: 1.85.0
       freebsd_instance:
         image: freebsd-14-2-release-amd64-ufs
     - name: FreeBSD 14 i686 nightly
@@ -34,16 +38,17 @@ task:
   extra_setup_script:
     - . $HOME/.cargo/env
     - if [ "$TARGET" = "i686-unknown-freebsd" ]; then rustup target add --toolchain $VERSION i686-unknown-freebsd; fi
+    - if [ "$TARGET" = "i686-unknown-freebsd" ]; then rustup target add --toolchain $TEST_VERSION i686-unknown-freebsd; fi
   cargo_cache:
     folder: $HOME/.cargo/registry
     fingerprint_script: cat Cargo.lock || echo ""
   test_script:
     - . $HOME/.cargo/env
-    - cargo test --all-features --target $TARGET
+    - cargo +$TEST_VERSION test --all-features --target $TARGET
   bench_script:
     - . $HOME/.cargo/env
     - if [ "$VERSION" = "nightly" ]; then
-      cargo test --all-features --benches
+      cargo +$TEST_VERSION test --all-features --benches --target $TARGET
     - fi
   doc_script:
     - . $HOME/.cargo/env
