@@ -2,7 +2,7 @@ use crate::{param, sys, JailError, StoppedJail};
 use log::trace;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::net;
 use std::path;
 
@@ -491,8 +491,7 @@ impl RunningJail {
         match ret {
             0 => Ok(()),
             -1 => Err(Error::last_os_error()),
-            _ => Err(Error::new(
-                ErrorKind::Other,
+            _ => Err(Error::other(
                 "invalid return value from jail_attach",
             )),
         }

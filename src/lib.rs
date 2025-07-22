@@ -137,7 +137,7 @@ impl Jail {
                 .params
                 .get(name)
                 .ok_or_else(|| JailError::NoSuchParameter(name.into()))
-                .map(|x| x.clone()),
+                .cloned()
         }
     }
 

@@ -26,7 +26,7 @@ fn main() {
             .ips()
             .unwrap()
             .iter()
-            .map(|ip| format!("{}", ip))
+            .map(|ip| format!("{ip}"))
             .collect();
 
         let jail = Jail {

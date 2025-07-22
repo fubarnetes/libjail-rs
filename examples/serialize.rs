@@ -41,7 +41,7 @@ fn main() {
 
     let serialized = serde_json::to_string_pretty(&stopped).expect("Failed to serialize jail");
 
-    println!("{}", serialized);
+    println!("{serialized}");
 }
 
 #[cfg(not(feature = "serialize"))]

@@ -2,7 +2,6 @@ use crate::param;
 use crate::process::Jailed;
 use crate::running::RunningJail;
 use crate::stopped::StoppedJail;
-use rctl;
 use std::os::unix::process::ExitStatusExt;
 use std::process::Command;
 
@@ -73,10 +72,10 @@ fn test_rctl_yes() {
         .output()
         .expect("Failed to start yes command");
 
-    assert!(output.status.code() == None);
+    assert!(output.status.code().is_none());
     assert!(output.status.signal() == Some(9));
 
-    println!("{:?}", output);
+    println!("{output:?}");
 
     running.stop().expect("Could not stop Jail");
 }

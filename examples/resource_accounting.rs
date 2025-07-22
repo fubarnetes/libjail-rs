@@ -15,7 +15,7 @@ fn main() {
     println!("created new jail with JID {}", running.jid);
 
     println!("Let's run a command that burns CPU cycles in the jail!");
-    Command::new("/usr/bin/yes")
+    let mut cmd = Command::new("/usr/bin/yes")
         .jail(&running)
         .stdout(Stdio::null())
         .spawn()
@@ -24,16 +24,17 @@ fn main() {
     for _ in 1..10 {
         thread::sleep(time::Duration::from_millis(1000));
         match running.racct_statistics() {
-            Ok(stats) => println!("Resource accounting statistics: {:#?}", stats),
+            Ok(stats) => println!("Resource accounting statistics: {stats:#?}"),
             Err(jail::JailError::RctlError(rctl::Error::InvalidKernelState(state))) => {
-                println!("Resource accounting is reported as {}", state)
+                println!("Resource accounting is reported as {state}")
             }
             Err(e) => {
-                println!("Other Error: {}", e);
+                println!("Other Error: {e}");
                 break;
             }
         };
     }
 
     running.kill().expect("Could not kill jail");
+    cmd.wait().unwrap();
 }

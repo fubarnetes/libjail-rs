@@ -257,7 +257,7 @@ impl Value {
         let mut bytes: Vec<u8> = vec![];
 
         // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy::useless_conversion))]
+        #[allow(clippy::useless_conversion)]
         match self {
             Value::String(s) => {
                 bytes = CString::new(s.as_str())
@@ -288,7 +288,7 @@ impl Value {
             }
             Value::Ipv4Addrs(addrs) => {
                 for addr in addrs {
-                    let s_addr = nix::sys::socket::Ipv4Addr::from_std(&addr).0.s_addr;
+                    let s_addr = nix::sys::socket::Ipv4Addr::from_std(addr).0.s_addr;
                     let host_u32 = u32::from_be(s_addr);
                     bytes
                         .write_u32::<NetworkEndian>(host_u32)
@@ -422,7 +422,7 @@ impl Value {
     pub fn unpack_u64(self) -> Result<u64, JailError> {
         trace!("Value::unpack_u64({:?})", self);
         // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy::useless_conversion))]
+        #[allow(clippy::useless_conversion)]
         match self {
             Value::U64(v) => Ok(v),
             Value::U32(v) => Ok(v.into()),
@@ -460,7 +460,7 @@ impl Value {
     pub fn unpack_i64(self) -> Result<i64, JailError> {
         trace!("Value::unpack_i64({:?})", self);
         // Some conversions are identity on 64 bit, but not on 32 bit and vice versa
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy::useless_conversion))]
+        #[allow(clippy::useless_conversion)]
         match self {
             Value::S64(v) => Ok(v),
             Value::S32(v) => Ok(v.into()),
@@ -481,7 +481,7 @@ impl Value {
 fn info(name: &str) -> Result<(CtlType, CtlFlags, usize), JailError> {
     trace!("info({:?})", name);
     // Get parameter type
-    let ctlname = format!("security.jail.param.{}", name);
+    let ctlname = format!("security.jail.param.{name}");
 
     let ctl = Ctl::new(&ctlname).map_err(|_| JailError::NoSuchParameter(name.to_string()))?;
 
@@ -613,7 +613,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
 
     let jid = unsafe {
         libc::jail_get(
-            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov[..].as_mut_ptr(),
             jiov.len() as u32,
             JailFlags::empty().bits(),
         )
@@ -671,7 +671,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
                  retrieved is not a multiple of the size of in_addr."
             );
 
-            #[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_ptr_alignment))]
+            //#[allow(clippy::cast_ptr_alignment)]
             let ips: Vec<net::Ipv4Addr> =
                 unsafe { slice::from_raw_parts(value.as_ptr() as *const libc::in_addr, count) }
                     .iter()
@@ -694,7 +694,7 @@ pub fn get(jid: i32, name: &str) -> Result<Value, JailError> {
                  retrieved is not a multiple of the size of in_addr."
             );
 
-            #[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_ptr_alignment))]
+            //#[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_ptr_alignment))]
             let ips: Vec<net::Ipv6Addr> =
                 unsafe { slice::from_raw_parts(value.as_ptr() as *const libc::in6_addr, count) }
                     .iter()
@@ -780,7 +780,7 @@ pub fn set(jid: i32, name: &str, value: Value) -> Result<(), JailError> {
 
     let jid = unsafe {
         libc::jail_set(
-            jiov[..].as_mut_ptr() as *mut libc::iovec,
+            jiov[..].as_mut_ptr(),
             jiov.len() as u32,
             JailFlags::UPDATE.bits(),
         )
@@ -824,7 +824,7 @@ pub fn get_all(jid: i32) -> Result<HashMap<String, Value>, JailError> {
     // If we have individual filters on each of these, we'll end up with a
     // very large type_length_limit. We can quickly check names against a vec
     // to avoid that.
-    let filtered_names = vec![
+    let filtered_names = [
         // The following parameters are dynamic
         "jid",
         "dying",
