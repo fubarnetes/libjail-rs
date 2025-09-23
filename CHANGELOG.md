@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - ReleaseDate
+## [0.3.1] - 2025-09-23
 
 ### Changed
 - Broadened the dependency spec on Nix, for better compatibility with
