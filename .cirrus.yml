@@ -45,7 +45,7 @@ task:
   before_cache_script: rm -rf $HOME/.cargo/registry/index 
 
 task:
-  name: FreeBSD 14 amd64 stable
+  name: FreeBSD 14 amd64 MSRV
   env:
     VERSION: 1.80.0
   freebsd_instance:
