@@ -1,8 +1,14 @@
 # Changelog
 
+## [Unreleased] - ReleaseDate
+
 ### Changed
 - Broadened the dependency spec on Nix, for better compatibility with
   downstream consumers that have various requirements. (#157)
+
+- Broadened the dependency spec on rctl, sysctl, and thiserror, for better
+  compatibility with downstream consumers that have various requirements.
+  (#166)
 
 ## [0.3.0] - 2024-10-01
 
