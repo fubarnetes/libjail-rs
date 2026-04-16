@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - freebsd_version: "15.0"
+            rust_version: nightly
+            target: x86_64-unknown-freebsd
+          - freebsd_version: "14.4"
+            rust_version: nightly
+            target: x86_64-unknown-freebsd
+          # Test i686 FreeBSD in 32-bit emulation on a 64-bit host.
+          - freebsd_version: "14.4"
+            rust_version: nightly
+            target: i686-unknown-freebsd
+    env:
+      RUSTFLAGS: -D warnings
+    name: FreeBSD/${{ matrix.target }} ${{ matrix.freebsd_version }} ${{ matrix.rust_version }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Start VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.freebsd_version }}
+          usesh: true
+          envs: RUSTFLAGS
+      - name: Install dependencies
+        shell: freebsd {0}
+        run: |
+          pkg install -y curl llvm
+          fetch https://sh.rustup.rs -o rustup.sh
+          sh rustup.sh -y --profile=minimal --default-toolchain ${{ matrix.rust_version }}
+          . $HOME/.cargo/env
+          rustup target add --toolchain ${{ matrix.rust_version }} ${{ matrix.target }}
+      - name: Test
+        shell: freebsd {0}
+        run: |
+          . $HOME/.cargo/env
+          cargo test --all-features --all-targets --target ${{ matrix.target }}
+      - name: Doc
+        shell: freebsd {0}
+        run: |
+          . $HOME/.cargo/env
+          cargo doc --target ${{ matrix.target }} --no-deps --all-features
+
+  msrv:
+    runs-on: ubuntu-latest
+    name: FreeBSD 14.4 amd64 MSRV
+    steps:
+      - uses: actions/checkout@v6
+      - name: Start VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.4"
+          usesh: true
+      - name: Install dependencies
+        shell: freebsd {0}
+        run: |
+          pkg install -y curl llvm
+          fetch https://sh.rustup.rs -o rustup.sh
+          sh rustup.sh -y --profile=minimal --default-toolchain 1.80.0
+      - name: Check
+        shell: freebsd {0}
+        run: |
+          . $HOME/.cargo/env
+          cargo update -p sysctl --precise 0.6.0
+          cargo update -p rctl --precise 0.3.0
+          cargo +1.80.0 check --all-features
+
+  lint:
+    runs-on: ubuntu-latest
+    name: lint
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v6
+      - name: Start VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.4"
+          usesh: true
+          envs: RUSTFLAGS
+      - name: Install dependencies
+        shell: freebsd {0}
+        run: |
+          pkg install -y curl llvm cargo-audit
+          fetch https://sh.rustup.rs -o rustup.sh
+          sh rustup.sh -y --profile=minimal --default-toolchain nightly
+      - name: Setup
+        shell: freebsd {0}
+        run: |
+          . $HOME/.cargo/env
+          rustup component add --toolchain nightly clippy
+          rustup component add --toolchain nightly rustfmt
+      - name: Clippy
+        shell: freebsd {0}
+        run: |
+          . $HOME/.cargo/env
+          cargo +nightly clippy --all-targets -- -D warnings
+          cargo +nightly clippy --all-targets --all-features -- -D warnings
+      - name: Audit
+        shell: freebsd {0}
+        run: |
+          . $HOME/.cargo/env
+          cargo audit
+      - name: Minver
+        shell: freebsd {0}
+        run: |
+          . $HOME/.cargo/env
+          cargo +nightly update -Zdirect-minimal-versions
+          cargo +nightly check --all-features --all-targets --all
+
+  style:
+    name: style
+    runs-on: ubuntu-latest
+    container:
+      image: rustlang/rust:nightly
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fmt
+        run: |
+          rustup component add rustfmt
+          cargo fmt --all -- --check --color=never
