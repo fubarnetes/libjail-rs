@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- Removed dependency on Nix, unneeded since 0.3.0.
+
 ## [0.3.1] - 2025-09-23
 
 ### Changed
