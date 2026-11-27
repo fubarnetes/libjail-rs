@@ -38,7 +38,7 @@ serialize = ["serde", "serde_json", "rctl/serialize"]
 bitflags = "2.6.0"
 byteorder = "1.4.3"
 libc = "0.2.155"
-log="0.4.8"
+log="0.4.14"
 sysctl = ">=0.5.4, < 0.8"
 rctl = ">=0.3.0, <0.5.0"
 strum = "0.27.0"
