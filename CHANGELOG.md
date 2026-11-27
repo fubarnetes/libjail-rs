@@ -4,7 +4,8 @@
 
 ### Fixed
 
-- Removed dependency on Nix, unneeded since 0.3.0.
+- Removed dependency on Nix, unneeded since 0.3.0.  Broaden the range of
+  accepted versions for several dependencies. (#175)
 
 ## [0.3.1] - 2025-09-23
 
